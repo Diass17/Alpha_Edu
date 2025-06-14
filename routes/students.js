@@ -5,33 +5,33 @@ const pool = require('../config/db');
 
 const indexPath = path.join(__dirname, '../public/index.html');
 
-router.get('/students', (_, res) => res.sendFile(indexPath));
-router.get('/students/add', (_, res) => res.sendFile(indexPath));
-router.get('/students/edit/:id', (_, res) => res.sendFile(indexPath));
+// router.get('/students', (_, res) => res.sendFile(indexPath));
+// router.get('/students/add', (_, res) => res.sendFile(indexPath));
+// router.get('/students/edit/:id', (_, res) => res.sendFile(indexPath));
 
-router.get('/api/students', async (req, res) => {
-  const { search } = req.query;
+// router.get('/api/students', async (req, res) => {
+//   const { search } = req.query;
 
-  try {
-    let result;
+//   try {
+//     let result;
 
-    if (search) {
-      result = await pool.query(
-        'SELECT id, full_name, iin FROM students WHERE LOWER(full_name) LIKE LOWER($1) ORDER BY id',
-        [`%${search}%`]
-      );
-    } else {
-      result = await pool.query(
-        'SELECT id, full_name, iin FROM students ORDER BY id'
-      );
-    }
+//     if (search) {
+//       result = await pool.query(
+//         'SELECT id, full_name, iin FROM students WHERE LOWER(full_name) LIKE LOWER($1) ORDER BY id',
+//         [`%${search}%`]
+//       );
+//     } else {
+//       result = await pool.query(
+//         'SELECT id, full_name, iin FROM students ORDER BY id'
+//       );
+//     }
 
-    res.json(result.rows);
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: 'Ошибка сервера' });
-  }
-});
+//     res.json(result.rows);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ error: 'Ошибка сервера' });
+//   }
+// });
 
 router.post('/api/students/add', async (req, res) => {
   const {
@@ -84,20 +84,20 @@ router.post('/api/students/delete/:id', async (req, res) => {
   }
 });
 
-router.get('/api/students/:id', async (req, res) => {
-  const id = req.params.id;
+// router.get('/api/students/:id', async (req, res) => {
+//   const id = req.params.id;
 
-  try {
-    const result = await pool.query('SELECT * FROM students WHERE id = $1', [id]);
-    const student = result.rows[0];
-    if (!student) return res.status(404).json({ error: 'Студент не найден' });
+//   try {
+//     const result = await pool.query('SELECT * FROM students WHERE id = $1', [id]);
+//     const student = result.rows[0];
+//     if (!student) return res.status(404).json({ error: 'Студент не найден' });
 
-    res.status(200).json(student);
-  } catch (err) {
-    console.error('Ошибка при загрузке студента:', err);
-    res.status(500).json({ error: 'Ошибка сервера' });
-  }
-});
+//     res.status(200).json(student);
+//   } catch (err) {
+//     console.error('Ошибка при загрузке студента:', err);
+//     res.status(500).json({ error: 'Ошибка сервера' });
+//   }
+// });
 
 router.post('/api/students/edit/:id', async (req, res) => {
   const id = req.params.id;
