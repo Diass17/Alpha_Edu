@@ -4,16 +4,16 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 import path from 'path'
 
 export default defineConfig({
-  base: './',
+  base: '/',
   plugins: [vue(), vueJsx()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, 'src'),
     },
   },
-  publicDir: 'static', // 👉 перемещаем все публичные статичные файлы сюда
+  publicDir: 'static', 
   build: {
-    outDir: 'dist',     // 👉 теперь сборка идёт в dist
+    outDir: 'dist',    
     emptyOutDir: true,
   },
 })
