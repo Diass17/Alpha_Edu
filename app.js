@@ -50,13 +50,15 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // 🔁 SPA fallback
-app.get('*', (req, res, next) => {
+app.get('//*', (req, res, next) => {
   if (req.originalUrl.startsWith('/api') || req.originalUrl.includes('.')) {
     return next(); // пропустить API и файлы
   }
 
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
+
+
 
 // Запуск
 const PORT = process.env.PORT || 3000;
