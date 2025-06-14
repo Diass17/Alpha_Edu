@@ -13,7 +13,7 @@ dotenv.config();
 const app = express();
 
 app.use(cors({
-  origin: ['http://localhost:5173/', 'https://alphaeducation.vercel.app/'],
+  origin: ['http://localhost:5173', 'https://alphaeducation.vercel.app'],
   credentials: true
 }));
 app.use(express.json()); 
@@ -47,9 +47,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/api', authRoutes);
 app.use('/api', studentRoutes);
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
 
 app.get('/', (req, res) => {
   res.send('Welcome to Alpha Education Platform API');
