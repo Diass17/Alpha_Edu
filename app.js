@@ -43,21 +43,26 @@ const swaggerOptions = {
   },
   apis: ['./routes/*.js'],
 };
-// const swaggerSpec = swaggerJsdoc(swaggerOptions);
-// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const swaggerSpec = swaggerJsdoc(swaggerOptions);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // 👉 Статика из Vite
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // 🔁 SPA fallback
 app.get('*', (req, res, next) => {
-  if (req.originalUrl.startsWith('/api') || req.originalUrl.includes('.')) {
-    return next(); // пропустить API и файлы
+  if (
+    req.originalUrl.startsWith('/api') ||
+    req.originalUrl.includes('.') ||
+    req.originalUrl.startsWith('http') ||         // 👈 ДОБАВЬ ЭТО
+    req.originalUrl.startsWith('https') ||        // 👈 И ЭТО
+    req.originalUrl.includes(':')                 // 👈 И ЭТО
+  ) {
+    return next();
   }
 
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
 });
-
 
 
 // Запуск
