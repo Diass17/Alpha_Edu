@@ -43,8 +43,8 @@ const swaggerOptions = {
   },
   apis: ['./routes/*.js'],
 };
-const swaggerSpec = swaggerJsdoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// const swaggerSpec = swaggerJsdoc(swaggerOptions);
+// app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // 👉 Статика из Vite
 app.use(express.static(path.join(__dirname, 'dist')));
