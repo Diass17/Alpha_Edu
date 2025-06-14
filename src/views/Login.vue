@@ -41,5 +41,5 @@ const submitForm = async () => {
 </script>
 
 <style scoped>
-@import "/styles.css";
+@import "@/assets/main.css";
 </style>

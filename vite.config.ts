@@ -11,8 +11,9 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
+  publicDir: 'static', // 👉 перемещаем все публичные статичные файлы сюда
   build: {
-    outDir: 'public', 
+    outDir: 'dist',     // 👉 теперь сборка идёт в dist
     emptyOutDir: true,
   },
 })
