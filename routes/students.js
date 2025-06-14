@@ -1,24 +1,16 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const pool = require('../config/db');
 
-/**
- * @swagger
- * /students:
- *   get:
- *     summary: Получить список студентов
- *     parameters:
- *       - in: query
- *         name: search
- *         schema:
- *           type: string
- *         description: Поиск по ФИО
- *     responses:
- *       200:
- *         description: Список студентов
- */
-router.get('/students', async (req, res) => {
-  const { search } = req.query; 
+const indexPath = path.join(__dirname, '../public/index.html');
+
+router.get('/students', (_, res) => res.sendFile(indexPath));
+router.get('/students/add', (_, res) => res.sendFile(indexPath));
+router.get('/students/edit/:id', (_, res) => res.sendFile(indexPath));
+
+router.get('/api/students', async (req, res) => {
+  const { search } = req.query;
 
   try {
     let result;
@@ -41,72 +33,7 @@ router.get('/students', async (req, res) => {
   }
 });
 
-
-/**
- * @swagger
- * /students/add:
- *   get:
- *     summary: Форма добавления студента
- *     responses:
- *       200:
- *         description: HTML-страница формы
- */
-router.get('/students/add', (req, res) => {
-  if (!req.session.user) return res.redirect('/login');
-  res.render('add_student', { error: null });
-});
-
-/**
- * @swagger
- * /students/add:
- *   post:
- *     summary: Добавить нового студента
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               full_name:
- *                 type: string
- *                 description: Полное имя студента
- *               iin:
- *                 type: string
- *                 description: Идентификационный номер студента
- *               email:
- *                 type: string
- *                 description: Электронная почта студента
- *               phone:
- *                 type: string
- *                 description: Телефон студента
- *               status:
- *                 type: string
- *                 description: Статус студента
- *               top_student:
- *                 type: string
- *                 description: Признак топового студента
- *               funding_source:
- *                 type: string
- *                 description: Источник финансирования
- *               subject:
- *                 type: string
- *                 description: Специализация студента
- *               total_cost:
- *                 type: number
- *                 description: Общая стоимость обучения
- *               discount_percent:
- *                 type: number
- *                 description: Процент скидки
- *               paid_amount:
- *                 type: number
- *                 description: Сумма, уплаченная студентом
- *     responses:
- *       302:
- *         description: Редирект на список студентов
- */
-
-router.post('/students/add', async (req, res) => {
+router.post('/api/students/add', async (req, res) => {
   const {
     full_name, iin, email, phone, status, top_student,
     funding_source, subject, total_cost, discount_percent, paid_amount
@@ -138,116 +65,41 @@ router.post('/students/add', async (req, res) => {
       ]
     );
 
-    res.redirect('/students');
+    res.status(201).json({ message: 'Студент добавлен' });
   } catch (err) {
     console.error('Ошибка при добавлении студента:', err);
-    res.render('add_student', { error: 'Ошибка при добавлении. Проверьте данные.' });
+    res.status(500).json({ error: 'Ошибка при добавлении. Проверьте данные.' });
   }
 });
 
-/**
- * @swagger
- * /students/delete/{id}:
- *   post:
- *     summary: Удалить студента
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       302:
- *         description: Редирект на список студентов
- */
-router.post('/students/delete/:id', async (req, res) => {
+router.post('/api/students/delete/:id', async (req, res) => {
   const studentId = req.params.id;
 
   try {
     await pool.query('DELETE FROM students WHERE id = $1', [studentId]);
-    res.redirect('/students');
+    res.status(200).json({ message: 'Удалено' });
   } catch (err) {
     console.error('Ошибка при удалении студента:', err);
-    res.status(500).send('Ошибка сервера при удалении');
+    res.status(500).json({ error: 'Ошибка сервера при удалении' });
   }
 });
 
-/**
- * @swagger
- * /students/edit/{id}:
- *   get:
- *     summary: Получить форму редактирования студента
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: HTML-форма
- */
-router.get('/students/edit/:id', async (req, res) => {
-  if (!req.session.user) return res.redirect('/login');
+router.get('/api/students/:id', async (req, res) => {
   const id = req.params.id;
 
   try {
     const result = await pool.query('SELECT * FROM students WHERE id = $1', [id]);
     const student = result.rows[0];
-    if (!student) return res.redirect('/students');
+    if (!student) return res.status(404).json({ error: 'Студент не найден' });
 
-    res.render('edit_student', { student, error: null });
+    res.status(200).json(student);
   } catch (err) {
     console.error('Ошибка при загрузке студента:', err);
-    res.status(500).send('Ошибка сервера');
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-/**
- * @swagger
- * /students/edit/{id}:
- *   post:
- *     summary: Обновить данные студента
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               full_name:
- *                 type: string
- *               iin:
- *                 type: string
- *               email:
- *                 type: string
- *               phone:
- *                 type: string
- *               status:
- *                 type: string
- *               top_student:
- *                 type: string
- *               funding_source:
- *                 type: string
- *               subject:
- *                 type: string
- *               total_cost:
- *                 type: number
- *               discount_percent:
- *                 type: number
- *               paid_amount:
- *                 type: number
- *     responses:
- *       302:
- *         description: Редирект на /students
- */
-router.post('/students/edit/:id', async (req, res) => {
+router.post('/api/students/edit/:id', async (req, res) => {
   const id = req.params.id;
   const {
     full_name, iin, email, phone, status, top_student,
@@ -284,10 +136,10 @@ router.post('/students/edit/:id', async (req, res) => {
         id
       ]
     );
-    res.redirect('/students');
+    res.status(200).json({ message: 'Обновлено' });
   } catch (err) {
     console.error('Ошибка при обновлении:', err);
-    res.render('edit_student', { student: req.body, error: 'Ошибка при обновлении. Проверьте данные.' });
+    res.status(500).json({ error: 'Ошибка при обновлении. Проверьте данные.' });
   }
 });
 

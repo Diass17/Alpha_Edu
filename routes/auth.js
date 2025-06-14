@@ -1,18 +1,14 @@
 const express = require('express');
 const router = express.Router();
+const path = require('path');
 const pool = require('../config/db');
 
-router.get('/auth', (req, res) => {
-  res.render('auth_choice');
-});
+const indexPath = path.join(__dirname, '../public/index.html');
 
-router.get('/register', (req, res) => {
-  res.render('register', { error: null });
-});
-
-router.get('/login', (req, res) => {
-  res.render('login', { error: null });
-});
+router.get('/auth', (_, res) => res.sendFile(indexPath));
+router.get('/register', (_, res) => res.sendFile(indexPath));
+router.get('/login', (_, res) => res.sendFile(indexPath));
+router.get('/dashboard', (_, res) => res.sendFile(indexPath));
 
 router.post('/register', async (req, res) => {
   const { email, password } = req.body;
@@ -60,13 +56,6 @@ router.post('/login', async (req, res) => {
     console.error('❌ Ошибка при входе:', err);
     res.status(500).json({ message: 'Внутренняя ошибка сервера' });
   }
-});
-
-router.get('/dashboard', (req, res) => {
-  if (!req.session.user) {
-    return res.redirect('/login');
-  }
-  res.render('dashboard', { user: req.session.user });
 });
 
 router.get('/logout', (req, res) => {
