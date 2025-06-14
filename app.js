@@ -12,22 +12,26 @@ const studentRoutes = require('./routes/students');
 dotenv.config();
 const app = express();
 
+// CORS
 app.use(cors({
   origin: ['http://localhost:5173', 'https://alphaeducation.vercel.app'],
   credentials: true
 }));
-app.use(express.json()); 
-app.use(express.urlencoded({ extended: false })); 
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
+// Session
 app.use(session({
   secret: 'alphaSecretKey',
   resave: false,
   saveUninitialized: false
 }));
 
-const studentsRouter = require('./routes/students');
-app.use('/api', studentsRouter);
+// API routes
+app.use('/api', authRoutes);
+app.use('/api', studentRoutes);
 
+// Swagger
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
@@ -42,16 +46,15 @@ const swaggerOptions = {
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-app.use(express.static(path.join(__dirname, 'public')));
+// 👉 Статика из Vite
+app.use(express.static(path.join(__dirname, 'dist')));
 
-app.use('/api', authRoutes);
-app.use('/api', studentRoutes);
-
-
+// 🔁 SPA fallback
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
+// Запуск
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server started on http://localhost:${PORT}`);
