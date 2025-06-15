@@ -50,14 +50,11 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // 🔁 SPA fallback
-app.get('*', (req, res, next) => {
-  if (
-    req.originalUrl.startsWith('/api') ||
-    req.originalUrl.includes('.') ||
-    req.originalUrl.startsWith('http') ||         // 👈 ДОБАВЬ ЭТО
-    req.originalUrl.startsWith('https') ||        // 👈 И ЭТО
-    req.originalUrl.includes(':')                 // 👈 И ЭТО
-  ) {
+app.use((req, res, next) => {
+  const isApiRequest = req.originalUrl.startsWith('/api');
+  const hasFileExtension = /\.[a-zA-Z0-9]+$/.test(req.originalUrl);
+
+  if (isApiRequest || hasFileExtension) {
     return next();
   }
 
