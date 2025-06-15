@@ -50,8 +50,18 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(express.static(path.join(__dirname, 'dist')));
 
 // 🔁 SPA fallback
-app.get('/', (req, res) => {
-  res.send('Welcome to Alpha Education Platform API');
+app.get('*', (req, res, next) => {
+  if (
+    req.originalUrl.startsWith('/api') ||
+    req.originalUrl.includes('.') ||
+    req.originalUrl.startsWith('http') ||         // 👈 ДОБАВЬ ЭТО
+    req.originalUrl.startsWith('https') ||        // 👈 И ЭТО
+    req.originalUrl.includes(':')                 // 👈 И ЭТО
+  ) {
+    return next();
+  }
+
+  res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
 });
 
 

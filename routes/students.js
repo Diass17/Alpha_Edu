@@ -1,15 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const path = require('path');
 const pool = require('../config/db');
 
-const indexPath = path.join(__dirname, '../public/index.html');
-
-router.get('/students', (_, res) => res.sendFile(indexPath));
-router.get('/students/add', (_, res) => res.sendFile(indexPath));
-router.get('/students/edit/:id', (_, res) => res.sendFile(indexPath));
-
-router.get('/api/students', async (req, res) => {
+router.get('/students', async (req, res) => {
   const { search } = req.query;
 
   try {
@@ -33,7 +26,7 @@ router.get('/api/students', async (req, res) => {
   }
 });
 
-router.post('/api/students/add', async (req, res) => {
+router.post('/students/add', async (req, res) => {
   const {
     full_name, iin, email, phone, status, top_student,
     funding_source, subject, total_cost, discount_percent, paid_amount
@@ -72,7 +65,7 @@ router.post('/api/students/add', async (req, res) => {
   }
 });
 
-router.post('/api/students/delete/:id', async (req, res) => {
+router.post('/students/delete/:id', async (req, res) => {
   const studentId = req.params.id;
 
   try {
@@ -84,7 +77,7 @@ router.post('/api/students/delete/:id', async (req, res) => {
   }
 });
 
-router.get('/api/students/:id', async (req, res) => {
+router.get('/students/:id', async (req, res) => {
   const id = req.params.id;
 
   try {
@@ -99,7 +92,7 @@ router.get('/api/students/:id', async (req, res) => {
   }
 });
 
-router.post('/api/students/edit/:id', async (req, res) => {
+router.post('/students/edit/:id', async (req, res) => {
   const id = req.params.id;
   const {
     full_name, iin, email, phone, status, top_student,
@@ -119,27 +112,19 @@ router.post('/api/students/edit/:id', async (req, res) => {
         subject = $8,
         total_cost = $9,
         discount_percent = $10,
-        paid_amount = $11
+        paid_amount = $11,
+        updated_at = NOW()
       WHERE id = $12`,
       [
-        full_name,
-        iin,
-        email,
-        phone,
-        status,
-        top_student === 'on',
-        funding_source,
-        subject,
-        total_cost || 0,
-        discount_percent || 0,
-        paid_amount || 0,
-        id
+        full_name, iin, email, phone, status, top_student === 'on',
+        funding_source, subject, total_cost, discount_percent, paid_amount, id
       ]
     );
-    res.status(200).json({ message: 'Обновлено' });
+
+    res.status(200).json({ message: 'Студент обновлён' });
   } catch (err) {
-    console.error('Ошибка при обновлении:', err);
-    res.status(500).json({ error: 'Ошибка при обновлении. Проверьте данные.' });
+    console.error('Ошибка при обновлении студента:', err);
+    res.status(500).json({ error: 'Ошибка при обновлении' });
   }
 });
 

@@ -1,14 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const path = require('path');
 const pool = require('../config/db');
-
-const indexPath = path.join(__dirname, '../public/index.html');
-
-router.get('/auth', (_, res) => res.sendFile(indexPath));
-router.get('/register', (_, res) => res.sendFile(indexPath));
-router.get('/login', (_, res) => res.sendFile(indexPath));
-router.get('/dashboard', (_, res) => res.sendFile(indexPath));
 
 router.post('/register', async (req, res) => {
   const { email, password } = req.body;
