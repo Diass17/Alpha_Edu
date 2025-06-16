@@ -26,7 +26,7 @@ router.get('/students', async (req, res) => {
   }
 });
 
-router.post('/students/add', async (req, res) => {
+router.post('/students', async (req, res) => {
   const {
     full_name, iin, email, phone, status, top_student,
     funding_source, subject, total_cost, discount_percent, paid_amount
