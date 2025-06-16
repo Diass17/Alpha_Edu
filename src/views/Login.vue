@@ -13,7 +13,7 @@
       <!-- Левая часть (белый фон) -->
       <div class="hidden md:flex w-1/2 bg-white items-center justify-center p-8">
         <!-- Уменьшенная картинка (добавлен класс max-h-[70vh] для контроля размера) -->
-        <img src="@/assets/logos/Image 4.png" alt="illustration" class="max-w-full max-h-[40vh] object-contain" />
+        <img src="/assets/logos/image.png" alt="illustration" class="max-w-full max-h-[40vh] object-contain" />
       </div>
 
       <!-- Правая часть (голубой фон) -->
