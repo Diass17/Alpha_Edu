@@ -1,33 +1,43 @@
 <template>
-  <div class="bg-gray-100 min-h-screen py-8">
+  <div class="min-h-screen bg-gray-100 py-8">
     <div class="max-w-3xl mx-auto px-4">
-      <!-- Заголовок -->
-      <h2 class="text-3xl font-semibold mb-6">Добавить студента</h2>
+      <h2 class="mb-6 text-3xl font-semibold">Добавить студента</h2>
 
-      <el-form :model="form" ref="formRef" label-width="0" class="space-y-6 bg-white p-6 rounded-lg shadow">
-        <!-- ФИО -->
-        <el-input v-model="form.surname" placeholder="Фамилия" clearable size="large"
-          class="w-full bg-purple-50 placeholder-purple-300 text-lg" />
-        <el-input v-model="form.firstName" placeholder="Имя" clearable size="large"
-          class="w-full bg-purple-50 placeholder-purple-300 text-lg" />
-        <el-input v-model="form.patronymic" placeholder="Отчество" clearable size="large"
-          class="w-full bg-purple-50 placeholder-purple-300 text-lg" />
+      <el-form :model="form" :rules="rules" ref="formRef" label-width="0"
+        class="space-y-6 bg-white p-6 rounded-lg shadow">
+        <!-- Личные данные -->
+        <el-form-item prop="surname">
+          <el-input v-model="form.surname" placeholder="Фамилия" size="large" class="input-purple" />
+        </el-form-item>
 
-        <!-- ИИН, Email, Телефон -->
-        <el-input v-model="form.iin" placeholder="ИИН" clearable size="large"
-          class="w-full bg-purple-50 placeholder-purple-300 text-lg" />
-        <el-input v-model="form.email" placeholder="Email" clearable size="large"
-          class="w-full bg-purple-50 placeholder-purple-300 text-lg" />
-        <el-input v-model="form.phone" placeholder="+7(xxx)-xxx-xx-xx" clearable size="large"
-          class="w-full bg-purple-50 placeholder-purple-300 text-lg" />
+        <el-form-item prop="firstName">
+          <el-input v-model="form.firstName" placeholder="Имя" size="large" class="input-purple" />
+        </el-form-item>
+
+        <el-form-item prop="patronymic">
+          <el-input v-model="form.patronymic" placeholder="Отчество" size="large" class="input-purple" />
+        </el-form-item>
+
+        <!-- Контактные данные -->
+        <el-form-item prop="iin">
+          <el-input v-model="form.iin" placeholder="ИИН" size="large" class="input-purple" />
+        </el-form-item>
+
+        <el-form-item>
+          <el-input v-model="form.email" placeholder="Email" size="large" class="input-purple" />
+        </el-form-item>
+
+        <el-form-item>
+          <el-input v-model="form.phone" placeholder="Телефон" size="large" class="input-purple" />
+        </el-form-item>
 
         <!-- Статус и Top Student -->
         <div class="flex gap-4">
-          <el-select v-model="form.status" placeholder="Статус" clearable size="large"
-            class="flex-1 bg-purple-50 placeholder-purple-300 text-lg">
-            <el-option label="Студент" value="active" />
-            <el-option label="Выпускник" value="graduated" />
+          <el-select v-model="form.status" placeholder="Статус" size="large" class="flex-1 input-purple">
+            <el-option label="Студент" value="Студент" />
+            <el-option label="Выпускник" value="Выпускник" />
           </el-select>
+
           <div class="flex items-center">
             <span class="mr-2 text-lg text-gray-700">Top Student</span>
             <el-checkbox v-model="form.topStudent" />
@@ -35,18 +45,18 @@
         </div>
 
         <!-- Финансирование -->
-        <el-select v-model="form.financing" placeholder="Финансирование" clearable size="large"
-          class="w-full bg-purple-50 placeholder-purple-300 text-lg">
+        <el-select v-model="form.financing" placeholder="Финансирование" size="large" class="w-full input-purple">
           <el-option label="Полная оплата" value="full" />
           <el-option label="Со скидкой 30%" value="discount" />
           <el-option label="Грант" value="grant" />
         </el-select>
 
         <!-- Предмет -->
-        <el-input v-model="form.subject" placeholder="Предмет" clearable size="large"
-          class="w-full bg-purple-50 placeholder-purple-300 text-lg" />
+        <el-form-item prop="subject">
+          <el-input v-model="form.subject" placeholder="Предмет" size="large" class="input-purple" />
+        </el-form-item>
 
-        <!-- Ввод суммы оплаты и оплачено -->
+        <!-- Финансовые данные -->
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block mb-1 text-lg text-gray-700">Оплата за курс</label>
@@ -55,13 +65,13 @@
           </div>
           <div>
             <label class="block mb-1 text-lg text-gray-700">Сумма оплачено</label>
-            <el-input-number v-model="amountPaid" :min="0" :max="discountPrice" :step="1000" controls-position="right"
+            <el-input-number v-model="amountPaid" :min="0" :max="discountedPrice" :step="1000" controls-position="right"
               size="large" class="w-full" />
           </div>
         </div>
 
-        <!-- Таблица оплаты -->
-        <div class="bg-purple-50 border border-purple-200 rounded-lg overflow-hidden">
+        <!-- Подсчёты -->
+        <div class="rounded-lg border border-purple-200 bg-purple-50 overflow-hidden">
           <table class="w-full divide-y divide-purple-200">
             <thead class="bg-purple-100">
               <tr>
@@ -69,20 +79,20 @@
                 <th class="px-6 py-3 text-right text-lg text-purple-700">Сумма</th>
               </tr>
             </thead>
-            <tbody class="bg-white">
-              <tr class="border-t">
+            <tbody>
+              <tr>
                 <td class="px-6 py-4">Оплата за курс</td>
                 <td class="px-6 py-4 text-right">{{ formatTenge(coursePrice) }}</td>
               </tr>
-              <tr class="border-t">
+              <tr>
                 <td class="px-6 py-4">Сумма со скидкой 30%</td>
-                <td class="px-6 py-4 text-right">{{ formatTenge(discountPrice) }}</td>
+                <td class="px-6 py-4 text-right">{{ formatTenge(discountedPrice) }}</td>
               </tr>
-              <tr class="border-t">
+              <tr>
                 <td class="px-6 py-4">Сумма оплачено</td>
                 <td class="px-6 py-4 text-right">{{ formatTenge(amountPaid) }}</td>
               </tr>
-              <tr class="border-t">
+              <tr>
                 <td class="px-6 py-4">Сумма к оплате</td>
                 <td class="px-6 py-4 text-right">{{ formatTenge(amountDue) }}</td>
               </tr>
@@ -90,11 +100,9 @@
           </table>
         </div>
 
-        <!-- Кнопка Сохранить -->
-        <div class="flex justify-end mt-6">
-          <el-button type="primary" size="large" @click="submitForm" class="rounded-lg">
-            Сохранить профиль
-          </el-button>
+        <!-- Сохранить -->
+        <div class="mt-6 flex justify-end">
+          <el-button type="primary" size="large" @click="submitForm" class="rounded-lg">Сохранить</el-button>
         </div>
       </el-form>
     </div>
@@ -102,30 +110,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { useStudentStore, Student } from '@/store/studentStore'
+import { reactive, ref, computed } from 'vue'
+import { ElMessage } from 'element-plus'
+import type { FormInstance, FormRules } from 'element-plus'
+import { useStudentStore } from '@/store/studentStore'
 
+const studentStore = useStudentStore()
 
-interface StudentFormModel {
-  surname: string
-  firstName: string
-  patronymic: string
-  iin: string
-  email: string
-  phone: string
-  status: string
-  topStudent: boolean
-  financing: string
-  subject: string
-}
+const formRef = ref<FormInstance | null>(null)
 
-const router = useRouter()
-const store = useStudentStore()
-
-
-const formRef = ref()
-const form = ref<StudentFormModel>({
+// Используем reactive для формы
+const form = reactive({
   surname: '',
   firstName: '',
   patronymic: '',
@@ -135,52 +130,101 @@ const form = ref<StudentFormModel>({
   status: '',
   topStudent: false,
   financing: '',
-  subject: '',
+  subject: ''
 })
 
+// Валидация
+const rules = reactive<FormRules>({
+  surname: [{ required: true, message: 'Введите фамилию', trigger: 'blur' }],
+  firstName: [{ required: true, message: 'Введите имя', trigger: 'blur' }],
+  patronymic: [{ required: true, message: 'Введите отчество', trigger: 'blur' }],
+  iin: [{ required: true, message: 'Введите ИИН', trigger: 'blur' }],
+  subject: [{ required: true, message: 'Введите предмет', trigger: 'blur' }],
+})
 
-const coursePrice = ref(150000)
+// Финансовые поля
+const coursePrice = ref(0)
 const amountPaid = ref(0)
-const discountPrice = computed(() => Math.round(coursePrice.value * 0.7))
-const amountDue = computed(() => discountPrice.value - amountPaid.value)
 
-function formatTenge(value: number) {
-  return value >= 0 ? value.toLocaleString('ru-RU') + ' тг' : '—'
+const discountedPrice = computed(() => {
+  return form.financing === 'discount' ? Math.floor(coursePrice.value * 0.7) : coursePrice.value
+})
+
+const amountDue = computed(() => {
+  return Math.max(discountedPrice.value - amountPaid.value, 0)
+})
+
+function formatTenge(amount: number) {
+  return new Intl.NumberFormat('ru-RU', {
+    style: 'currency',
+    currency: 'KZT',
+    maximumFractionDigits: 0,
+  }).format(amount)
 }
 
+const submitForm = async () => {
+  if (!formRef.value) return
 
-async function submitForm() {
-  const fullName = `${form.value.surname} ${form.value.firstName} ${form.value.patronymic}`.trim()
+  await formRef.value.validate(async (valid: boolean) => {
+    if (!valid) {
+      ElMessage.error('Пожалуйста, заполните все обязательные поля')
+      return
+    }
 
-  const payload: Omit<Student, 'id'> = {
-    name: fullName,               
-    iin: form.value.iin,
-    email: form.value.email,
-    number: form.value.phone,
-    status: form.value.status,
-    top_student: form.value.topStudent,
-    funding_source: form.value.financing,
-    course: form.value.subject,
-    stream: '',
-    full_name: fullName         
-  }
+    try {
+      const newStudent = {
+        full_name: `${form.surname} ${form.firstName} ${form.patronymic}`,
+        name: `${form.firstName} ${form.patronymic}`,
+        iin: form.iin,
+        email: form.email,
+        phone: form.phone,
+        status: form.status,
+        top_student: form.topStudent,
+        funding_source: form.financing,
+        subject: form.subject,
+        total_cost: coursePrice.value,
+        discount_percent: form.financing === 'discount' ? 30 : 0,
+        paid_amount: amountPaid.value,
+      }
 
-  await store.createStudent(payload)
-  router.push({ name: 'Students' })
+      await studentStore.createStudent(newStudent)
+      ElMessage.success('Студент успешно добавлен')
+
+      // Очистка
+      Object.assign(form, {
+        surname: '',
+        firstName: '',
+        patronymic: '',
+        iin: '',
+        email: '',
+        phone: '',
+        status: '',
+        topStudent: false,
+        financing: '',
+        subject: ''
+      })
+      coursePrice.value = 0
+      amountPaid.value = 0
+    } catch (error) {
+      ElMessage.error('Ошибка при добавлении студента')
+      console.error(error)
+    }
+  })
 }
 </script>
 
+
+
+
 <style scoped>
-.el-input__inner,
-.el-select .el-input__inner {
+.input-purple .el-input__inner {
   background-color: #faf5ff;
   border-color: #e9d8fd;
   border-radius: 0.5rem;
   font-size: 1.125rem;
 }
 
-.el-input__inner::placeholder,
-.el-select .el-input__inner::placeholder {
+.input-purple .el-input__inner::placeholder {
   color: #c4b5fd;
 }
 </style>

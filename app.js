@@ -61,6 +61,11 @@ app.use((req, res, next) => {
   res.sendFile(path.resolve(__dirname, 'dist', 'index.html'));
 });
 
+app.get('/api/streams', (req, res) => {
+  res.json([{ id: 1, name: 'Test Stream' }]);
+});
+
+
 
 // Запуск
 const PORT = process.env.PORT || 3000;

@@ -2,6 +2,29 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 
+function mapFundingSource(input) {
+  if (!input) return null;
+
+  const normalized = input.toLowerCase().trim();
+
+  switch (normalized) {
+    case 'грант':
+    case 'grant':
+      return 'Грант';
+    case 'полная оплата':
+    case 'full':
+      return 'Полная оплата';
+    case 'со скидкой 30%':
+    case 'discount':
+      return 'Со скидкой 30%';
+    default:
+      return null;
+  }
+}
+
+
+
+
 router.get('/students', async (req, res) => {
   const { search } = req.query;
 
@@ -10,7 +33,7 @@ router.get('/students', async (req, res) => {
 
     if (search) {
       result = await pool.query(
-        'SELECT id, full_name, iin FROM students WHERE LOWER(full_name) LIKE LOWER($1) ORDER BY id',
+        `SELECT id, full_name, iin, stream_id FROM students WHERE LOWER(full_name) LIKE LOWER($1) ORDER BY id`,
         [`%${search}%`]
       );
     } else {
@@ -26,23 +49,45 @@ router.get('/students', async (req, res) => {
   }
 });
 
+router.get('/streams', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, name FROM streams ORDER BY id');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Ошибка при получении потоков:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
 router.post('/students', async (req, res) => {
+  console.log('Получено:', req.body);
   const {
     full_name, iin, email, phone, status, top_student,
     funding_source, subject, total_cost, discount_percent, paid_amount
   } = req.body;
 
+  const fundingSource = mapFundingSource(funding_source);
+
+  if (!fundingSource) {
+    console.log('Некорректный источник финансирования:', funding_source);
+    return res.status(400).json({
+      error: `Неверный funding_source: "${funding_source}". Ожидается "Грант", "Полная оплата" или "Со скидкой 30%".`
+    });
+  }
+
+
   try {
+    const amount_remaining = total_cost - paid_amount;
     await pool.query(
       `INSERT INTO students (
-        full_name, iin, email, phone, status, top_student,
-        funding_source, subject, total_cost, discount_percent,
-        paid_amount, created_at
-      ) VALUES (
-        $1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10,
-        $11, NOW()
-      )`,
+    full_name, iin, email, phone, status, top_student,
+    funding_source, subject, total_cost, discount_percent,
+    paid_amount
+  ) VALUES (
+    $1, $2, $3, $4, $5, $6,
+    $7, $8, $9, $10,
+    $11
+  )`,
       [
         full_name,
         iin,
@@ -50,13 +95,22 @@ router.post('/students', async (req, res) => {
         phone,
         status,
         top_student === 'on',
-        funding_source,
+        fundingSource,
         subject,
         total_cost || 0,
         discount_percent || 0,
         paid_amount || 0
       ]
     );
+
+
+
+
+
+
+
+
+
 
     res.status(201).json({ message: 'Студент добавлен' });
   } catch (err) {

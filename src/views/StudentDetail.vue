@@ -23,11 +23,11 @@
           <div class="flex-1 border-t border-purple-200"></div>
           <div class="mx-4 px-6 py-2 text-lg bg-white border-2 border-purple-300 rounded-md">
             <template v-if="!isEditing">
-              <div>{{ student?.course || '—' }}</div>
+              <div>{{ student?.subject || '—' }}</div>
               <div class="text-sm text-gray-500">{{ student?.stream || '—' }}</div>
             </template>
             <template v-else>
-              <el-input v-model="form.course" size="small" placeholder="Курс" class="mb-1"/>
+              <el-input v-model="form.subject" size="small" placeholder="Курс" class="mb-1"/>
               <el-input v-model="form.stream" size="small" placeholder="Поток"/>
             </template>
           </div>
@@ -68,9 +68,9 @@
           <tr class="border-t">
             <td class="px-6 py-4">Телефон</td>
             <td class="px-6 py-4">
-              <template v-if="!isEditing">{{ student?.number || '—' }}</template>
+              <template v-if="!isEditing">{{ student?.phone || '—' }}</template>
               <template v-else>
-                <el-input v-model="form.number" size="small" />
+                <el-input v-model="form.phone" size="small" />
               </template>
             </td>
           </tr>
