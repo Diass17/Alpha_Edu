@@ -42,15 +42,33 @@ router.get('/students', async (req, res) => {
   try {
     let result;
 
+    const baseQuery = `
+      SELECT 
+        students.id,
+        students.full_name,
+        students.iin,
+        students.email,
+        students.phone,
+        students.status,
+        students.top_student,
+        students.funding_source,
+        students.subject,
+        students.total_cost,
+        students.discount_percent,
+        students.paid_amount,
+        students.stream_id,
+        streams.name AS stream
+      FROM students
+      LEFT JOIN streams ON students.stream_id = streams.id
+    `;
+
     if (search) {
       result = await pool.query(
-        `SELECT id, full_name, iin, stream_id FROM students WHERE LOWER(full_name) LIKE LOWER($1) ORDER BY id`,
+        `${baseQuery} WHERE LOWER(full_name) LIKE LOWER($1) ORDER BY students.id`,
         [`%${search}%`]
       );
     } else {
-      result = await pool.query(
-        'SELECT id, full_name, iin FROM students ORDER BY id'
-      );
+      result = await pool.query(`${baseQuery} ORDER BY students.id`);
     }
 
     res.json(result.rows);
@@ -59,6 +77,7 @@ router.get('/students', async (req, res) => {
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
+
 
 router.get('/streams', async (req, res) => {
   try {
@@ -147,6 +166,43 @@ router.get('/students/:id', async (req, res) => {
   }
 });
 
+router.put('/students/:id', async (req, res) => {
+  const id = req.params.id;
+  const {
+    full_name, iin, email, phone, status, top_student,
+    funding_source, subject, total_cost, discount_percent, paid_amount
+  } = req.body;
+
+  try {
+    await pool.query(
+      `UPDATE students SET
+    full_name = $1,
+    iin = $2,
+    email = $3,
+    phone = $4,
+    status = $5,
+    top_student = $6,
+    funding_source = $7,
+    subject = $8,
+    total_cost = $9,
+    discount_percent = $10,
+    paid_amount = $11
+  WHERE id = $12`,
+      [
+        full_name, iin, email, phone, status, top_student,
+        funding_source, subject, total_cost, discount_percent, paid_amount, id
+      ]
+    );
+
+
+    res.status(200).json({ message: 'Студент обновлён' });
+  } catch (err) {
+    console.error('Ошибка при обновлении (PUT):', err);
+    res.status(500).json({ error: 'Ошибка при обновлении' });
+  }
+});
+
+
 router.post('/students/edit/:id', async (req, res) => {
   const id = req.params.id;
   const {
@@ -157,24 +213,24 @@ router.post('/students/edit/:id', async (req, res) => {
   try {
     await pool.query(
       `UPDATE students SET
-        full_name = $1,
-        iin = $2,
-        email = $3,
-        phone = $4,
-        status = $5,
-        top_student = $6,
-        funding_source = $7,
-        subject = $8,
-        total_cost = $9,
-        discount_percent = $10,
-        paid_amount = $11,
-        updated_at = NOW()
-      WHERE id = $12`,
+    full_name = $1,
+    iin = $2,
+    email = $3,
+    phone = $4,
+    status = $5,
+    top_student = $6,
+    funding_source = $7,
+    subject = $8,
+    total_cost = $9,
+    discount_percent = $10,
+    paid_amount = $11
+  WHERE id = $12`,
       [
-        full_name, iin, email, phone, status, top_student === 'on',
+        full_name, iin, email, phone, status, top_student,
         funding_source, subject, total_cost, discount_percent, paid_amount, id
       ]
     );
+
 
     res.status(200).json({ message: 'Студент обновлён' });
   } catch (err) {

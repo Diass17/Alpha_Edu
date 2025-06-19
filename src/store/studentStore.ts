@@ -3,7 +3,7 @@ import axios from 'axios'
 import { ref } from 'vue'
 
 export interface Student {
-  full_name: string 
+  full_name: string
   id: number
   name: string
   iin: string
@@ -12,9 +12,9 @@ export interface Student {
   status: string
   top_student: boolean
   funding_source: string
-  total_cost : number
+  total_cost: number
   discount_percent: number
-  paid_amount:number
+  paid_amount: number
   subject: string
   stream?: string
   stream_id?: number  // <-- знак вопроса здесь
@@ -37,16 +37,16 @@ export const useStudentStore = defineStore('student', {
           full_name: s.full_name,
           iin: s.iin,
           email: s.email,
-          phone: s.phone_number || '',
+          phone: s.phone || '', // ✅ исправлено
           status: s.status || '',
           top_student: s.top_student,
           funding_source: s.funding_source || '',
           subject: s.subject || '',
-          stream: s.stream ,
+          stream: s.stream,
           stream_id: s.stream_id,
           total_cost: s.total_cost,
           paid_amount: s.paid_amount,
-          discount_percent:s.discount_percent
+          discount_percent: s.discount_percent
         }))
       } catch (error) {
         console.error('Ошибка при загрузке студентов:', error)
