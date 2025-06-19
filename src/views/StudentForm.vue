@@ -55,14 +55,10 @@
         <!-- Предмет -->
         <el-form-item prop="subject">
           <el-select v-model="form.subject" placeholder="Выберите предмет" size="large" class="w-full input-purple">
-            <el-option label="Вэб-разработка" value="Вэб-разработка" />
-            <el-option label="Дизайн" value="Дизайн" />
-            <el-option label="Машинное обучение и ИИ" value="Машинное обучение и ИИ" />
-            <el-option label="Мобильная разработка" value="Мобильная разработка" />
-            <el-option label="Программирование" value="Программирование" />
-            <el-option label="Разработка игр" value="Разработка игр" />
+            <el-option v-for="course in courseOptions" :key="course.id" :label="course.name" :value="course.name" />
           </el-select>
         </el-form-item>
+
 
 
         <!-- Финансовые данные -->
@@ -119,11 +115,13 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted } from 'vue'
 import { reactive, ref, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { useStudentStore } from '@/store/studentStore'
 
+const courseOptions = ref<{ id: number; name: string }[]>([])
 const studentStore = useStudentStore()
 
 const formRef = ref<FormInstance | null>(null)
@@ -189,6 +187,16 @@ const rules = reactive<FormRules>({
 
   subject: [{ required: true, message: 'Введите предмет', trigger: 'blur' }],
 });
+
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/students/courses') // путь к новому маршруту
+    const data = await res.json()
+    courseOptions.value = data
+  } catch (err) {
+    console.error('Ошибка загрузки курсов:', err)
+  }
+})
 
 
 // Финансовые поля

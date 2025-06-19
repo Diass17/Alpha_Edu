@@ -23,6 +23,17 @@ function mapFundingSource(input) {
 }
 
 
+router.get('/students/courses', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT id, name FROM courses ORDER BY id');
+    res.json(result.rows);
+  } catch (error) {
+    console.error('Ошибка при получении курсов:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+
 
 
 router.get('/students', async (req, res) => {
@@ -102,16 +113,6 @@ router.post('/students', async (req, res) => {
         paid_amount || 0
       ]
     );
-
-
-
-
-
-
-
-
-
-
     res.status(201).json({ message: 'Студент добавлен' });
   } catch (err) {
     console.error('Ошибка при добавлении студента:', err);
