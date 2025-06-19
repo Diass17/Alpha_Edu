@@ -12,10 +12,10 @@
       <span>{{ student?.email || '—' }}</span>
 
       <span class="font-medium">Телефон</span>
-      <span>{{ student?.number || '—' }}</span>
+      <span>{{ student?.phone || '—' }}</span>
 
       <span class="font-medium">Курс</span>
-      <span>{{ student?.course || '—' }}</span>
+      <span>{{ student?.subject || '—' }}</span>
 
       <span class="font-medium">Поток</span>
       <span>{{ student?.stream || '—' }}</span>

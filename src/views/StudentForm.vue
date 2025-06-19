@@ -23,11 +23,11 @@
           <el-input v-model="form.iin" placeholder="ИИН" size="large" class="input-purple" />
         </el-form-item>
 
-        <el-form-item>
+        <el-form-item prop="email">
           <el-input v-model="form.email" placeholder="Email" size="large" class="input-purple" />
         </el-form-item>
 
-        <el-form-item>
+        <el-form-item prop="phone">
           <el-input v-model="form.phone" placeholder="Телефон" size="large" class="input-purple" />
         </el-form-item>
 
@@ -52,9 +52,18 @@
         </el-select>
 
         <!-- Предмет -->
+        <!-- Предмет -->
         <el-form-item prop="subject">
-          <el-input v-model="form.subject" placeholder="Предмет" size="large" class="input-purple" />
+          <el-select v-model="form.subject" placeholder="Выберите предмет" size="large" class="w-full input-purple">
+            <el-option label="Вэб-разработка" value="Вэб-разработка" />
+            <el-option label="Дизайн" value="Дизайн" />
+            <el-option label="Машинное обучение и ИИ" value="Машинное обучение и ИИ" />
+            <el-option label="Мобильная разработка" value="Мобильная разработка" />
+            <el-option label="Программирование" value="Программирование" />
+            <el-option label="Разработка игр" value="Разработка игр" />
+          </el-select>
         </el-form-item>
+
 
         <!-- Финансовые данные -->
         <div class="grid grid-cols-2 gap-4">
@@ -137,10 +146,50 @@ const form = reactive({
 const rules = reactive<FormRules>({
   surname: [{ required: true, message: 'Введите фамилию', trigger: 'blur' }],
   firstName: [{ required: true, message: 'Введите имя', trigger: 'blur' }],
-  patronymic: [{ required: true, message: 'Введите отчество', trigger: 'blur' }],
-  iin: [{ required: true, message: 'Введите ИИН', trigger: 'blur' }],
+  patronymic: [], // НЕ обязательное поле
+
+  iin: [
+    { required: true, message: 'Введите ИИН', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        if (!value) {
+          callback(new Error('Введите ИИН'));
+        } else if (!/^\d{12}$/.test(value)) {
+          callback(new Error('ИИН должен содержать ровно 12 цифр'));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+  phone: [
+    { required: true, message: 'Введите номер телефона', trigger: 'blur' },
+    {
+      validator: (rule, value, callback) => {
+        const valid = /^[\d+\-\s()]+$/.test(value); // допустимы цифры, пробелы, +, -, ()
+        if (!valid || value.length < 10) {
+          callback(new Error('Введите корректный номер телефона'));
+        } else {
+          callback();
+        }
+      },
+      trigger: 'blur'
+    }
+  ],
+
+  email: [
+    { required: true, message: 'Введите email', trigger: 'blur' },
+    {
+      type: 'email',
+      message: 'Введите корректный email',
+      trigger: ['blur', 'change']
+    }
+  ],
+
   subject: [{ required: true, message: 'Введите предмет', trigger: 'blur' }],
-})
+});
+
 
 // Финансовые поля
 const coursePrice = ref(0)
