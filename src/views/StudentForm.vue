@@ -28,7 +28,7 @@
         </el-form-item>
 
         <el-form-item prop="phone">
-          <el-input v-model="form.phone" placeholder="Телефон" size="large" class="input-purple" />
+          <el-input v-model="form.phone" placeholder="+77021524049" maxlength="12" size="large" class="input-purple" />
         </el-form-item>
 
         <!-- Статус и Top Student -->
@@ -165,9 +165,13 @@ const rules = reactive<FormRules>({
     { required: true, message: 'Введите номер телефона', trigger: 'blur' },
     {
       validator: (rule, value, callback) => {
-        const valid = /^[\d+\-\s()]+$/.test(value); // допустимы цифры, пробелы, +, -, ()
-        if (!valid || value.length < 10) {
-          callback(new Error('Введите корректный номер телефона'));
+        const phoneRegex = /^\+\d{11}$/;
+        if (!value) {
+          callback(new Error('Введите номер телефона'));
+        } else if (!value.startsWith('+')) {
+          callback(new Error('Номер должен начинаться с "+"'));
+        } else if (!phoneRegex.test(value)) {
+          callback(new Error('Формат: + и 11 цифр, всего 12 символов'));
         } else {
           callback();
         }
