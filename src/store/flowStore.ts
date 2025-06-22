@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import axios from 'axios'
 
 export type Flow = {
   id: number
@@ -14,33 +15,49 @@ export const useFlowStore = defineStore('flow', {
     list: [] as Flow[],
     loading: false,
   }),
+
   actions: {
-    async fetchFlows() {
+    // 🔄 Получить потоки по courseId
+    async fetchFlows(courseId?: number) {
       this.loading = true
-      await new Promise((r) => setTimeout(r, 300))
-      if (!this.list.length) {
-        this.list = [
-          { id: 1, name: 'DSF-1', mentor: 'Иванов Иван', startDate: '2025-01-01', endDate: '2025-06-01', courseId: 1 },
-          { id: 2, name: 'DSF-2', mentor: 'Петров Петр', startDate: '2025-02-01', endDate: '2025-07-01', courseId: 1 },
-        ]
+      try {
+        const url = courseId
+          ? `http://localhost:3000/api/flows/${courseId}`
+          : 'http://localhost:3000/api/flows'
+        const res = await axios.get(url)
+        this.list = res.data
+      } catch (err) {
+        console.error('❌ Ошибка загрузки потоков:', err)
+      } finally {
+        this.loading = false
       }
-      this.loading = false
     },
 
+    // ➕ Создание потока
     async createFlow(data: Omit<Flow, 'id'>) {
-      const newId = this.list.length ? Math.max(...this.list.map((x) => x.id)) + 1 : 1
-      this.list.push({ id: newId, ...data })
+      const res = await axios.post('http://localhost:3000/api/flows', {
+        name: data.name,
+        mentor: data.mentor,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        course_id: data.courseId, // 👈 важно: backend использует `course_id`
+      })
+      this.list.push(res.data)
     },
 
+    // ✏️ Обновление потока
     async updateFlow(id: number, data: Partial<Flow>) {
-      const idx = this.list.findIndex((f) => f.id === id)
+      const res = await axios.put(`http://localhost:3000/api/flows/${id}`, data)
+      const idx = this.list.findIndex(f => f.id === id)
       if (idx !== -1) {
-        this.list[idx] = { ...this.list[idx], ...data }
+        this.list[idx] = res.data
       }
     },
 
+    // ❌ Удаление потока
     async removeFlow(id: number) {
-      this.list = this.list.filter((x) => x.id !== id)
-    },
+      await axios.delete(`http://localhost:3000/api/flows/${id}`)
+      this.list = this.list.filter(f => f.id !== id)
+    }
   },
 })

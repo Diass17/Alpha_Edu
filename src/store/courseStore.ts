@@ -1,44 +1,55 @@
 import { defineStore } from 'pinia'
+import axios from 'axios'
 
-export type Course = {
+export interface Course {
   id: number
   name: string
 }
 
 export const useCourseStore = defineStore('course', {
   state: () => ({
-    list: [] as Course[],
+    list: [] as Course[]
   }),
+
   actions: {
+    // Загрузить список курсов
     async fetchCourses() {
-      if (this.list.length === 0) {
-        this.list = [
-          { id: 1, name: 'Вэб-разработка' },
-          { id: 2, name: 'Дизайн' },
-          { id: 3, name: 'Машинное обучение и ИИ' },
-          { id: 4, name: 'Мобильная разработка' },
-          { id: 5, name: 'Программирование' },
-          { id: 6, name: 'Разработка игр' },
-        ]
+      try {
+        const response = await axios.get('/api/courses')
+        this.list = response.data
+      } catch (error) {
+        console.error('❌ Ошибка при загрузке курсов:', error)
       }
     },
 
-    async createCourse(data: Omit<Course, 'id'>) {
-      const newId = this.list.length
-        ? Math.max(...this.list.map((c) => c.id)) + 1
-        : 1
-      this.list.push({ id: newId, ...data })
+    // Добавить новый курс
+    async addCourse(course: { name: string }) {
+      try {
+        const response = await axios.post('/api/courses', course)
+        this.list.push(response.data)
+      } catch (error) {
+        console.error('❌ Ошибка при добавлении курса:', error)
+      }
     },
 
+    // Удалить курс
+    async removeCourse(id: number) {
+      try {
+        await axios.delete(`/api/courses/${id}`)
+        this.list = this.list.filter(course => course.id !== id)
+      } catch (error) {
+        console.error('❌ Ошибка при удалении курса:', error)
+      }
+    },
+
+    // Обновить курс
     async updateCourse(id: number, newName: string) {
-      const idx = this.list.findIndex((c) => c.id === id)
-      if (idx !== -1) {
-        this.list[idx].name = newName
+      try {
+        await axios.put(`/api/courses/${id}`, { name: newName })
+        await this.fetchCourses() // Обновим весь список после изменения
+      } catch (error) {
+        console.error('❌ Ошибка при обновлении курса:', error)
       }
-    },
-
-    removeCourse(id: number) {
-      this.list = this.list.filter((c) => c.id !== id)
-    },
-  },
+    }
+  }
 })

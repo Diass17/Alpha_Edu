@@ -2,7 +2,6 @@
   "name": "alpha-education-platform",
   "version": "0.0.1",
   "scripts": {
-    "prebuild": "chmod +x ./node_modules/.bin/vite",
     "build": "vite build",
     "dev": "vite",
     "start": "node app.js",
@@ -25,9 +24,10 @@
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "vue": "^3.2.0",
-    "vue-router": "^4.1.0"
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
+    "@types/vue-router": "^2.0.0",
     "@vitejs/plugin-vue": "^5.2.4",
     "@vitejs/plugin-vue-jsx": "^4.2.0",
     "autoprefixer": "^10.0.0",

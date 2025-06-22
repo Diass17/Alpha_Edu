@@ -19,7 +19,7 @@
       </el-form>
     </div>
 
-
+    <!-- Диалог "успешно создано" -->
     <el-dialog
       v-model="showSuccess"
       width="320px"
@@ -45,23 +45,30 @@ import { useRouter } from 'vue-router'
 import { useCourseStore } from '@/store/courseStore'
 import { SuccessFilled } from '@element-plus/icons-vue'
 
-const router     = useRouter()
-const store      = useCourseStore()
-const courseName = ref('')
-const showSuccess= ref(false)
-const formRef    = ref()
+const router = useRouter()
+const store = useCourseStore()
 
+const courseName = ref('')
+const showSuccess = ref(false)
+const formRef = ref()
+
+// Функция для добавления курса
 async function submitCourse() {
   const trimmed = courseName.value.trim()
   if (!trimmed) return
-  console.log('Создать курс:', trimmed)       
-  await store.createCourse({ name: trimmed })
-  showSuccess.value = true
+
+  try {
+    await store.addCourse({ name: trimmed })
+    showSuccess.value = true
+  } catch (error) {
+    console.error('Ошибка при создании курса:', error)
+  }
 }
 
+// Переход назад после успешного создания
 function onContinue() {
   showSuccess.value = false
-  router.push({ name: 'Flows' })
+  router.push({ name: 'Courses' }) // возвращаемся к списку курсов
 }
 </script>
 

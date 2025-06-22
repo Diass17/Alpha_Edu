@@ -31,7 +31,7 @@
         type="text"
         class="p-2 w-12 h-12 flex items-center justify-center rounded transition-colors duration-200 ease-in-out hover:bg-[#6252FE]"
         :class="{ 'bg-[#6252FE]': isActive('/flows') }"
-        @click="navigate('/flows')"
+        @click="navigate('/courses')"
       >
         <img :src="logoGroup" alt="Flows" class="w-8 h-8" />
       </el-button>

@@ -1,4 +1,3 @@
-<!-- src/views/EditFlow.vue -->
 <template>
   <div class="flex items-center justify-center h-full bg-gray-100 p-6">
     <el-card class="w-full max-w-xl px-6 py-8 bg-white rounded-lg shadow">
@@ -10,7 +9,7 @@
         label-width="0"
         class="space-y-6"
       >
-        <!-- 1) Название потока -->
+        <!-- Название потока -->
         <el-input
           v-model="form.name"
           placeholder="Название потока"
@@ -19,7 +18,7 @@
           class="w-full bg-purple-50 placeholder-purple-400 text-lg rounded-lg"
         />
 
-        <!-- 2) Ментор -->
+        <!-- Ментор -->
         <el-input
           v-model="form.mentor"
           placeholder="Ментор"
@@ -28,7 +27,7 @@
           class="w-full bg-purple-50 placeholder-purple-400 text-lg rounded-lg"
         />
 
-        <!-- 3) Даты -->
+        <!-- Даты -->
         <div class="grid grid-cols-2 gap-4">
           <el-date-picker
             v-model="form.startDate"
@@ -50,7 +49,7 @@
           />
         </div>
 
-        <!-- 4) Кнопка “Сохранить” -->
+        <!-- Кнопка “Сохранить” -->
         <div class="flex justify-end mt-4">
           <el-button type="primary" size="large" @click="saveFlow">
             Сохранить
@@ -59,7 +58,7 @@
       </el-form>
     </el-card>
 
-    <!-- Диалог “Поток успешно сохранён” -->
+    <!-- Диалог “Успешно сохранено” -->
     <el-dialog
       v-model="showFlowEdited"
       width="320px"
@@ -88,34 +87,34 @@ import { useFlowStore, Flow } from '@/store/flowStore'
 import { SuccessFilled } from '@element-plus/icons-vue'
 
 const router = useRouter()
-const route  = useRoute()
+const route = useRoute()
 const flowStore = useFlowStore()
 
 const flowId = Number(route.params.flowId)
-
 const formRef = ref()
-const form = ref<Partial<Flow>>({
-  name:      '',
-  mentor:    '',
-  startDate: undefined,
-  endDate:   undefined,
-  courseId:  undefined,
-})
-
 const showFlowEdited = ref(false)
+
+const form = ref<Partial<Flow>>({
+  name: '',
+  mentor: '',
+  startDate: undefined,
+  endDate: undefined,
+  courseId: undefined,
+})
 
 onMounted(async () => {
   if (!flowStore.list.length) {
-    await flowStore.fetchFlows()
+    await flowStore.fetchFlows() // или fetchFlows(courseId), если ты знаешь ID
   }
-  const f = flowStore.list.find((x) => x.id === flowId)
+
+  const f = flowStore.list.find(f => f.id === flowId)
   if (f) {
     form.value = {
-      name:      f.name,
-      mentor:    f.mentor,
-      startDate: f.startDate ?? undefined,
-      endDate:   f.endDate ?? undefined,
-      courseId:  f.courseId,
+      name: f.name,
+      mentor: f.mentor,
+      startDate: f.startDate,
+      endDate: f.endDate,
+      courseId: f.courseId,
     }
   }
 })
@@ -124,19 +123,20 @@ async function saveFlow() {
   if (!form.value.name || !form.value.courseId) return
 
   await flowStore.updateFlow(flowId, {
-    name:      form.value.name,
-    mentor:    form.value.mentor ?? '',
+    name: form.value.name,
+    mentor: form.value.mentor ?? '',
     startDate: form.value.startDate ?? '',
-    endDate:   form.value.endDate   ?? '',
+    endDate: form.value.endDate ?? '',
   })
+
   showFlowEdited.value = true
 }
 
 function onEditedContinue() {
   showFlowEdited.value = false
   router.push({
-    name: 'Flows',
-    query: { courseId: String(form.value.courseId) },
+    name: 'CourseFlows',
+    params: { id: form.value.courseId },
   })
 }
 </script>

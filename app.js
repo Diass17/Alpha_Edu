@@ -31,6 +31,16 @@ app.use(session({
 app.use('/api', authRoutes);
 app.use('/api', studentRoutes);
 
+const flowsRouter = require('./routes/flows');
+app.use('/api/flows', flowsRouter);
+
+const coursesRouter = require('./routes/courses');
+app.use('/api/courses', coursesRouter);
+
+;
+
+
+
 // Swagger
 const swaggerOptions = {
   definition: {
