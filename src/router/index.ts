@@ -43,7 +43,7 @@ const routes = [
   { path: '/courses/:id/flows',      name: 'CourseFlows',    component: CourseFlows,     props: true },
 
   // 🔄 Flows
-  { path: '/flows/add',              name: 'AddFlow',        component: AddFlow },
+  { path: '/courses/:courseId/flows/add', name: 'AddFlow', component: AddFlow, props: true },
   { path: '/flows/:flowId',          name: 'FlowDetail',     component: FlowDetail,      props: true },
   { path: '/flows/:flowId/edit',     name: 'EditFlow',       component: EditFlow,        props: true },
 

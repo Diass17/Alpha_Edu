@@ -33,8 +33,23 @@ router.post('/', async (req, res) => {
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
+    console.error('❌ Ошибка при добавлении потока:', err); // ⬅️ Добавь это
     res.status(500).json({ error: 'Error adding flow' });
   }
 });
+
+router.delete('/:id', async (req, res) => {
+  const id = Number(req.params.id)
+  try {
+    const result = await db.query('DELETE FROM flows WHERE id = $1', [id])
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Flow not found' })
+    }
+    res.sendStatus(204) // Успешно, но без тела
+  } catch (err) {
+    console.error('❌ Ошибка при удалении потока:', err)
+    res.status(500).json({ error: 'Error deleting flow' })
+  }
+})
 
 module.exports = router;

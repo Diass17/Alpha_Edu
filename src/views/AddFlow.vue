@@ -1,65 +1,163 @@
 <template>
-  <div class="p-6">
-    <h2 class="text-2xl font-bold mb-4">Потоки курса: {{ courseName || '...' }}</h2>
+  <div class="add-flow-container">
+    <h2 class="title">Добавить поток</h2>
 
-    <div v-if="flows.length">
-      <div
-        v-for="flow in flows"
-        :key="flow.id"
-        class="bg-white rounded p-4 mb-3 shadow flex justify-between items-center"
-      >
-        <div>
-          <h3 class="text-lg font-semibold">{{ flow.name }}</h3>
-          <p class="text-gray-500">{{ flow.mentor || 'Без ментора' }}</p>
-        </div>
-        <el-button size="small" @click="goToEdit(flow.id)">Редактировать</el-button>
+    <div class="form">
+      <el-input
+        v-model="form.name"
+        placeholder="Название"
+        class="custom-input"
+      />
+      <el-input
+        v-model="form.mentor"
+        placeholder="Преподаватель"
+        class="custom-input"
+      />
+
+      <div class="date-row">
+        <el-date-picker
+          v-model="form.startDate"
+          type="date"
+          placeholder="Начало потока"
+          class="custom-date-picker"
+        />
+        <el-date-picker
+          v-model="form.endDate"
+          type="date"
+          placeholder="Завершение потока"
+          class="custom-date-picker"
+        />
       </div>
-    </div>
 
-    <div v-else class="text-gray-500 mt-4">Пока нет потоков</div>
-
-    <div class="mt-6">
-      <el-button type="primary" @click="goToAddFlow">Добавить поток</el-button>
+      <el-button
+        type="primary"
+        class="create-button"
+        @click="createFlow"
+      >
+        Создать поток
+      </el-button>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import { useFlowStore } from '@/store/flowStore'
-import { useCourseStore } from '@/store/courseStore'
 
+const flowStore = useFlowStore()
 const router = useRouter()
 const route = useRoute()
 
-const flowStore = useFlowStore()
-const courseStore = useCourseStore()
-
 const courseId = Number(route.params.id)
-const courseName = ref('')
 
-const flows = ref([])
-
-onMounted(async () => {
-  await flowStore.fetchFlows(courseId)
-  flows.value = flowStore.list
-
-  // Опционально получаем имя курса
-  if (!courseStore.list.length) {
-    await courseStore.fetchCourses()
-  }
-  const course = courseStore.list.find((c) => c.id === courseId)
-  if (course) {
-    courseName.value = course.name
-  }
+const form = ref({
+  name: '',
+  mentor: '',
+  startDate: '',
+  endDate: '',
 })
 
-function goToAddFlow() {
-  router.push({ name: 'AddFlow', query: { courseId: courseId.toString() } })
-}
-
-function goToEdit(flowId: number) {
-  router.push({ name: 'EditFlow', params: { flowId } })
+const createFlow = async () => {
+  try {
+    await flowStore.createFlow({
+      ...form.value,
+      courseId
+    })
+    ElMessage({
+      message: 'Поток успешно создан!',
+      type: 'success',
+      duration: 2000,
+    })
+    router.push(`/courses/${courseId}/flows`)
+  } catch (error) {
+    ElMessage.error('Ошибка при создании потока')
+  }
 }
 </script>
+
+<style scoped>
+.add-flow-container {
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 30px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  
+}
+
+.custom-input ::v-deep(.el-input__wrapper) {
+  background-color: #F1EFFF;
+  border: none;
+  border-radius: 6px;
+  box-shadow: none;
+  padding: 0 !important;
+  height: 48px;
+}
+
+.custom-input ::v-deep(.el-input__inner) {
+  background-color: transparent;
+  border: none;
+  padding: 12px 16px;
+  font-size: 16px;
+  color: #BBB4FF;
+}
+
+.date-row {
+  display: flex;
+  gap: 20px;
+}
+
+.custom-date ::v-deep(.el-input__inner) {
+  background-color: #BBB4FF;
+  border: none;
+  border-radius: 10px;
+  height: 48px;
+  padding-left: 15px;
+}
+
+.create-button {
+  align-self: flex-end;
+  background-color: #6252FE;
+  color: white;
+  border-radius: 10px;
+  font-weight: bold;
+  padding: 12px 24px;
+  font-size: 14px;
+}
+
+.custom-date-picker {
+  --el-input-bg-color: #BBB4FF;
+  --el-input-border-color: #BBB4FF;
+  border-radius: 12px;
+  width: 300px;
+  height: 50px;
+  background-color: #BBB4FF;
+  border: none;
+  display: flex;
+  align-items: center;
+  padding-left: 12px;
+  font-size: 16px;
+  color: #333;
+}
+.custom-date-picker .el-input__wrapper {
+  border-radius: 12px !important;
+  background-color: #BBB4FF !important;
+  box-shadow: none !important;
+  padding-left: 12px;
+}
+.custom-date-picker .el-input__inner {
+  background-color: transparent !important;
+}
+</style>
