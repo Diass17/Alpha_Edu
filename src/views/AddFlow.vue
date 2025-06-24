@@ -50,7 +50,8 @@ const flowStore = useFlowStore()
 const router = useRouter()
 const route = useRoute()
 
-const courseId = Number(route.params.id)
+// ✅ Получаем courseId из маршрута
+const courseId = Number(route.params.courseId)
 
 const form = ref({
   name: '',
@@ -62,16 +63,17 @@ const form = ref({
 const createFlow = async () => {
   try {
     await flowStore.createFlow({
-      ...form.value,
-      courseId
+      name: form.value.name,
+      mentor: form.value.mentor,
+      startDate: form.value.startDate,
+      endDate: form.value.endDate,
+      courseId: courseId, // 👈 обязательно явно!
     })
-    ElMessage({
-      message: 'Поток успешно создан!',
-      type: 'success',
-      duration: 2000,
-    })
+
+    ElMessage.success('Поток успешно создан!')
     router.push(`/courses/${courseId}/flows`)
   } catch (error) {
+    console.error('❌ Ошибка при создании потока:', error)
     ElMessage.error('Ошибка при создании потока')
   }
 }
@@ -94,7 +96,6 @@ const createFlow = async () => {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  
 }
 
 .custom-input ::v-deep(.el-input__wrapper) {
@@ -119,24 +120,6 @@ const createFlow = async () => {
   gap: 20px;
 }
 
-.custom-date ::v-deep(.el-input__inner) {
-  background-color: #BBB4FF;
-  border: none;
-  border-radius: 10px;
-  height: 48px;
-  padding-left: 15px;
-}
-
-.create-button {
-  align-self: flex-end;
-  background-color: #6252FE;
-  color: white;
-  border-radius: 10px;
-  font-weight: bold;
-  padding: 12px 24px;
-  font-size: 14px;
-}
-
 .custom-date-picker {
   --el-input-bg-color: #BBB4FF;
   --el-input-border-color: #BBB4FF;
@@ -151,13 +134,25 @@ const createFlow = async () => {
   font-size: 16px;
   color: #333;
 }
+
 .custom-date-picker .el-input__wrapper {
   border-radius: 12px !important;
   background-color: #BBB4FF !important;
   box-shadow: none !important;
   padding-left: 12px;
 }
+
 .custom-date-picker .el-input__inner {
   background-color: transparent !important;
+}
+
+.create-button {
+  align-self: flex-end;
+  background-color: #6252FE;
+  color: white;
+  border-radius: 10px;
+  font-weight: bold;
+  padding: 12px 24px;
+  font-size: 14px;
 }
 </style>

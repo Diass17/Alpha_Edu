@@ -50,19 +50,14 @@
       </div>
     </div>
 
-    <!-- ======== РЕЖИМ 3: РЕДАКТИРОВАНИЕ (есть потоки) ======== -->
+    <!-- ======== РЕЖИМ 3: РЕДАКТИРОВАНИЕ ======== -->
     <div v-else-if="isEditing" class="space-y-3">
       <el-checkbox-group v-model="selectedIds">
         <el-card
           v-for="flow in flowsForCourse"
           :key="flow.id"
           shadow="never"
-          :class="[
-            'p-0 bg-white rounded-lg hover:bg-gray-50 transition border-2',
-            selectedIds.includes(flow.id)
-              ? 'border-purple-500 bg-purple-50'
-              : 'border-transparent'
-          ]"
+          class="p-0 bg-white rounded-lg hover:bg-gray-50"
         >
           <div
             class="w-full flex items-center px-6 py-4 sm:px-8 sm:py-6 lg:px-10 lg:py-8 space-x-4"
@@ -75,11 +70,7 @@
               <ArrowRight class="w-5 h-5 sm:w-6 sm:h-6 lg:w-7 lg:h-7" />
             </el-icon>
 
-            <el-checkbox
-              :label="flow.id"
-              @click.stop
-              class="ml-4"
-            />
+            <el-checkbox :label="flow.id" class="ml-4" @click.stop />
           </div>
         </el-card>
       </el-checkbox-group>

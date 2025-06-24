@@ -25,6 +25,9 @@ router.get('/:courseId', async (req, res) => {
 // ✅ Добавить новый поток
 router.post('/', async (req, res) => {
   const { name, mentor, startDate, endDate, course_id } = req.body;
+
+  
+
   try {
     const result = await db.query(
       `INSERT INTO flows (name, mentor, start_date, end_date, course_id)
