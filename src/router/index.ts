@@ -18,6 +18,7 @@ import CourseForm from '@/views/CourseForm.vue'
 import CourseFlows from '@/views/CourseFlows.vue'
 
 // 🔄 Flows
+import Flows          from '@/views/Flows.vue'
 import AddFlow from '@/views/AddFlow.vue'
 import FlowDetail from '@/views/FlowDetail.vue'
 import EditFlow from '@/views/EditFlow.vue'
@@ -50,6 +51,7 @@ const routes = [
   { path: '/courses/:id/flows', name: 'CourseFlows', component: CourseFlows, props: true },
 
   // 🔄 Flows
+  { path: '/flows',               name: 'Flows',           component: Flows },
   { path: '/courses/:courseId/flows/add', name: 'AddFlow', component: AddFlow, props: true },
   { path: '/flows/:flowId', name: 'FlowDetail', component: FlowDetail, props: true },
   { path: '/flows/:flowId/edit', name: 'EditFlow', component: EditFlow, props: true },

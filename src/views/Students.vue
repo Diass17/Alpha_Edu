@@ -4,9 +4,14 @@
     <div class="flex justify-between items-center">
       <h1 class="text-2xl font-semibold">Список студентов</h1>
       <div class="relative w-1/3">
-        <el-input v-model="searchQuery" placeholder="Поиск" clearable
-          class="w-full bg-purple-50 border border-purple-200 rounded-lg pl-10 pr-4 py-2" @clear="applyFilters"
-          @keyup.enter="applyFilters">
+        <el-input
+          v-model="searchQuery"
+          placeholder="Поиск"
+          clearable
+          class="w-full bg-purple-50 border border-purple-200 rounded-xl pl-10 pr-4 py-2"
+          @clear="applyFilters"
+          @keyup.enter="applyFilters"
+        >
           <template #prefix>
             <Search class="text-purple-400" />
           </template>
@@ -14,56 +19,118 @@
       </div>
     </div>
 
-    <!-- Кнопки Добавить / Фильтр -->
-    <div class="mt-4 flex items-center space-x-2 bg-purple-50 p-4 rounded-lg">
-      <el-button class="flex items-center text-purple-600 bg-white border border-purple-200 hover:bg-purple-100"
-        @click="onAddStudent" size="small">
-        <Plus class="mr-2" /> Добавить студента
+    <!-- Кнопки Добавить / Фильтр / Сохранить в Excel -->
+    <div class="mt-4 flex items-center space-x-2 bg-purple-50 p-4 ">
+      <el-button
+        class="flex items-center text-purple-600 bg-white border border-purple-200 hover:bg-purple-100 "
+        size="medium"
+        @click="onAddStudent"
+      >
+        <img :src="addStudentLogo" alt="Добавить" class="w-5 h-5 mr-2" />
+        Добавить студента
       </el-button>
-      <el-button type="primary" class="flex items-center bg-purple-500 hover:bg-purple-600"
-        @click="showFilter = !showFilter" size="small">
-        <Filter class="mr-2" /> Фильтр
+      <el-button
+        :class="[
+          'flex items-center  text-purple-600 hover:bg-purple-100',
+          showFilter
+            ? 'bg-purple-500 border border-purple-500 text-white'
+            : 'bg-white border border-purple-200'
+        ]"
+        size="medium"
+        @click="showFilter = !showFilter"
+      >
+        <img :src="filterLogo" alt="Фильтр" class="w-5 h-5 mr-2" />
+        Фильтр
+      </el-button>
+      <el-button
+        class="flex items-center text-purple-600 bg-white border border-purple-200 hover:bg-purple-100 "
+        size="medium"
+        @click="onSaveExcel"
+      >
+        <Document class="mr-2" />
+        Сохранить в Excel
       </el-button>
     </div>
 
     <!-- Панель фильтров -->
-    <el-card v-if="showFilter" class="mt-4 bg-purple-50 border border-purple-200 rounded-lg" shadow="never">
-      <div class="flex flex-wrap gap-4">
+    <el-card
+      v-if="showFilter"
+      class="mt-4 bg-purple-50 border border-purple-200 rounded-xl p-4"
+      shadow="never"
+    >
+      <div class="flex flex-wrap gap-4 items-center">
         <div>
-          <el-select v-model="filter.course" placeholder="Выбрать курс" clearable class="w-48">
-            <el-option v-for="c in courses" :key="c" :label="c" :value="c" />
+          <el-select
+            v-model="filter.course"
+            placeholder="Выбрать курс"
+            clearable
+            class="w-48"
+          >
+            <el-option
+              v-for="c in courses"
+              :key="c"
+              :label="c"
+              :value="c"
+            />
           </el-select>
         </div>
         <div>
-          <el-select v-model="filter.stream" placeholder="Выбрать поток" clearable class="w-48">
-            <el-option v-for="s in streams" :key="s" :label="s" :value="s" />
+          <el-select
+            v-model="filter.stream"
+            placeholder="Выбрать поток"
+            clearable
+            class="w-48"
+          >
+            <el-option
+              v-for="s in streams"
+              :key="s"
+              :label="s"
+              :value="s"
+            />
           </el-select>
         </div>
         <el-checkbox v-model="filter.topStudent">
           Top Student
         </el-checkbox>
-        <el-button type="primary" @click="onResetFilters" size="small">
+        <el-button
+          type="primary"
+          @click="onResetFilters"
+          size="small"
+          class="rounded-xl"
+        >
           Сбросить
         </el-button>
       </div>
     </el-card>
 
     <!-- Таблица студентов -->
-    <div class="mt-6 overflow-auto">
-      <table class="min-w-full bg-white border rounded-lg">
+    <div class="mt-6 overflow-auto bg-white border border-purple-200 rounded-xl">
+      <table class="min-w-full bg-white">
         <thead class="bg-purple-50">
           <tr>
-            <th class="px-6 py-6 text-purple-700 text-left">#</th>
+            <th class="px-6 py-6 text-purple-700 text-left"></th>
             <th class="px-6 py-6 text-purple-700 text-left">Студент</th>
             <th class="px-6 py-6 text-purple-700 text-left">ИИН</th>
+            <th class="px-6 py-6 text-purple-700 text-left">Email</th>
+            <th class="px-6 py-6 text-purple-700 text-left">Номер телефона</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="(s, idx) in filteredList" :key="s.id" class="border-t hover:bg-gray-50 cursor-pointer"
-            @click="goToProfile(s.id)">
-            <td class="px-6 py-8 text-sm text-gray-900">{{ s.id }}</td>
-            <td class="px-6 py-8 text-sm text-gray-900">{{ s.full_name }}</td>
-            <td class="px-6 py-8 text-sm text-gray-900">{{ s.iin }}</td>
+          <tr
+            v-for="(s, idx) in filteredList"
+            :key="s.id"
+            class="cursor-pointer hover:bg-gray-50 even:bg-purple-50"
+            @click="goToProfile(s.id)"
+          >
+            <td class="px-6 py-6">
+              <span class="inline-flex items-center justify-center w-6 h-6 bg-purple-100 text-purple-600 rounded-md">
+                {{ idx + 1 }}
+              </span>
+            </td>
+            <td class="px-6 py-6 text-md text-gray-900">{{ s.name }}</td>
+            <td class="px-6 py-6 text-md text-gray-900">{{ s.iin }}</td>
+            <td class="px-6 py-6 text-md text-gray-900">{{ s.email }}</td>
+            <td class="px-6 py-6 text-md text-gray-900">{{ s.phone }}</td>
           </tr>
         </tbody>
       </table>
@@ -75,14 +142,17 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStudentStore, Student } from '@/store/studentStore'
-import { Search, Plus, Filter } from '@element-plus/icons-vue'
+import { Search, Document } from '@element-plus/icons-vue'
+import addStudentLogo from '@/assets/logos/addstudent.png'
+import filterLogo from '@/assets/logos/filter.png'
+import * as XLSX from 'xlsx'
 
 const router = useRouter()
 const store = useStudentStore()
 
 // Поиск и фильтры
 const searchQuery = ref('')
-const showFilter = ref(false)
+const showFilter  = ref(false)
 const filter = ref({
   course: '' as string,
   stream: '' as string,
@@ -99,9 +169,13 @@ const courses = [
 ]
 const streams = ['A1', 'B2', 'C3', 'D4']
 
-// Загрузка данных
+// Загрузка данных с бэкенда
 onMounted(async () => {
-  await store.fetchStudents()
+  try {
+    await store.fetchStudents()
+  } catch (err) {
+    console.error('Ошибка при загрузке студентов:', err)
+  }
 })
 
 // Навигация
@@ -112,33 +186,35 @@ function goToProfile(id: number) {
   router.push({ name: 'StudentDetail', params: { id } })
 }
 
-// Фильтрация и поиск
-function applyFilters() {
-  // ничего не делаем, computed обновится автоматически
+// Экспорт в Excel
+function onSaveExcel() {
+  store.exportToExcel?.()
 }
+
+// Сброс фильтров
 function onResetFilters() {
   filter.value = { course: '', stream: '', topStudent: false }
   searchQuery.value = ''
 }
 
-// Итоговый список
+// Поиск и фильтрация
+function applyFilters() {}
+
 const filteredList = computed<Student[]>(() =>
   store.list.filter((s) => {
     const bySearch =
       !searchQuery.value ||
-      s.full_name.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      s.iin.includes(searchQuery.value)
-    const byCourse =
-      !filter.value.course || s.subject === filter.value.course
-    const byStream =
-      !filter.value.stream || s.stream === filter.value.stream
-    const byTop =
-      !filter.value.topStudent || s.top_student
+      s.name?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      s.iin?.includes(searchQuery.value)
+    const byCourse = !filter.value.course || s.subject === filter.value.course
+    const byStream = !filter.value.stream || s.stream === filter.value.stream
+    const byTop = !filter.value.topStudent || s.top_student === true
     return bySearch && byCourse && byStream && byTop
   })
 )
 </script>
 
+
 <style scoped>
-/* любые дополнительные стили */
+/* Дополнительные сти */
 </style>
