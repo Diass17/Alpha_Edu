@@ -1,114 +1,103 @@
 <template>
   <div class="student-payments">
-<!-- Верхняя панель -->
-  <div class="top-bar">
-    <h2>Оплаты студентов</h2>
+    <!-- Верхняя панель -->
+    <div class="top-bar">
+      <h2>Оплаты студентов</h2>
 
-<div class="search-wrapper">
-  <img src="@/assets/logos/search.png" class="search-icon" />
-    <input
-      v-model="search"
-      type="text"
-      placeholder="Поиск"
-      class="search-input"
-    />
+      <div class="search-wrapper">
+        <img src="@/assets/logos/search.png" class="search-icon" />
+        <input v-model="search" type="text" placeholder="Поиск" class="search-input" />
+      </div>
+    </div>
+
+    <!-- Кнопка фильтра -->
+    <div class="filter-bar">
+      <button class="filter-btn" @click="toggleFilters">
+        <img src="@/assets/logos/filter.png" class="filter-icon" />
+        Фильтр
+      </button>
+    </div>
+
+    <!-- Панель фильтров -->
+    <div v-if="filtersVisible" class="filters-box">
+      <!-- Тип финансирования -->
+      <div class="relative w-56">
+        <button @click="toggleFundingDropdown" class="filter-select w-full flex justify-between items-center">
+          {{ selectedFunding || 'Финансирование' }}
+          <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <ul v-if="showFundingDropdown"
+          class="absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg">
+          <li v-for="option in fundingOptions" :key="option" @click="selectFunding(option)"
+            class="cursor-pointer px-4 py-2 hover:bg-gray-100"
+            :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFunding === option }">
+            {{ option }}
+          </li>
+        </ul>
+      </div>
+
+      <!-- Статус -->
+      <div class="relative w-56">
+        <button @click="toggleStatusDropdown" class="filter-select w-full flex justify-between items-center">
+          {{ selectedStatus || 'Статус' }}
+          <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <ul v-if="showStatusDropdown"
+          class="absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg">
+          <li v-for="option in statusOptions" :key="option" @click="selectStatus(option)"
+            class="cursor-pointer px-4 py-2 hover:bg-gray-100"
+            :class="{ 'text-[rgb(98,82,254)] font-medium': selectedStatus === option }">
+            {{ option }}
+          </li>
+        </ul>
+      </div>
+
+      <!-- Только с долгами -->
+      <label class="filter-select checkbox-style">
+        <input type="checkbox" v-model="withDebt" />
+        Только с долгами
+      </label>
+    </div>
+
+    <!-- Таблица -->
+    <table class="student-table">
+      <thead>
+        <tr>
+          <th class="w-12"></th>
+          <th>Студент</th>
+          <th>ИИН</th>
+          <th>Финансирование</th>
+        </tr>
+      </thead>
+      <tbody>
+        <<tr v-for="(student, index) in filteredStudents" :key="student.id"
+          @click="$router.push({ name: 'StudentPaymentCalendar', params: { id: student.id } })" class="cursor-pointer">
+          <td>
+            <div
+              class="w-6 h-6 rounded-md bg-[#F1ECFF] text-[rgb(98,82,254)] text-xs font-semibold flex items-center justify-center">
+              {{ index + 1 }}
+            </div>
+          </td>
+          <td>{{ student.name }}</td>
+          <td>{{ student.iin }}</td>
+          <td>{{ student.funding_source }}</td>
+          </tr>
+      </tbody>
+    </table>
   </div>
-</div>
-
-<!-- Кнопка фильтра -->
-<div class="filter-bar">
-  <button class="filter-btn" @click="toggleFilters">
-    <img src="@/assets/logos/filter.png" class="filter-icon" />
-      Фильтр
-  </button>
-</div>
-
-<!-- Панель фильтров -->
-<div v-if="filtersVisible" class="filters-box">
-<!-- Тип финансирования -->
-  <div class="relative w-56">
-    <button @click="toggleFundingDropdown" class="filter-select w-full flex justify-between items-center">
-      {{ selectedFunding || 'Финансирование' }}
-        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
-    </button>
-      <ul v-if="showFundingDropdown" class="absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg">
-        <li
-          v-for="option in fundingOptions"
-          :key="option"
-          @click="selectFunding(option)"
-          class="cursor-pointer px-4 py-2 hover:bg-gray-100"
-          :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFunding === option }"
-        >
-          {{ option }}
-        </li>
-      </ul>
-  </div>
-
-<!-- Статус -->
-  <div class="relative w-56">
-    <button @click="toggleStatusDropdown" class="filter-select w-full flex justify-between items-center">
-      {{ selectedStatus || 'Статус' }}
-        <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-        </svg>
-    </button>
-      <ul v-if="showStatusDropdown" class="absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg">
-        <li
-          v-for="option in statusOptions"
-          :key="option"
-          @click="selectStatus(option)"
-          class="cursor-pointer px-4 py-2 hover:bg-gray-100"
-          :class="{ 'text-[rgb(98,82,254)] font-medium': selectedStatus === option }"
-        >
-        {{ option }}
-      </li>
-    </ul>
-  </div>
-
-<!-- Только с долгами -->
-  <label class="filter-select checkbox-style">
-    <input type="checkbox" v-model="withDebt" />
-      Только с долгами
-    </label>
-</div>
-
-<!-- Таблица -->
-  <table class="student-table">
-    <thead>
-      <tr>
-        <th class="w-12"></th>
-        <th>Студент</th>
-        <th>ИИН</th>
-        <th>Финансирование</th>
-      </tr>
-    </thead>
-    <tbody>
-      <tr
-         v-for="(student, index) in filteredStudents"
-         :key="student.id"
-          @click="$router.push({ name: 'StudentPaymentCalendar', params: { id: student.id } })"
-          class="cursor-pointer"
->
-        <td>
-          <div class=" w-6 h-6 rounded-md bg-[#F1ECFF] text-[rgb(98,82,254)] text-xs font-semibold flex items-center justify-center">
-            {{ index + 1 }}
-          </div>
-        </td>
-        <td>{{ student.name }}</td>
-        <td>{{ student.iin }}</td>
-        <td>{{ student.source }}</td>
-      </tr>
-    </tbody>
-  </table>
-</div>
 </template>
 
 <!-- Script -->
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
+import { useStudentStore } from '@/store/studentStore.ts'
 
+
+const store = useStudentStore()
 const search = ref('')
 const filtersVisible = ref(false)
 
@@ -117,6 +106,10 @@ const selectedStatus = ref('')
 const withDebt = ref(false)
 const showFundingDropdown = ref(false)
 const showStatusDropdown = ref(false)
+
+onMounted(() => {
+  store.fetchStudents()
+})
 
 const toggleFilters = () => {
   filtersVisible.value = !filtersVisible.value
@@ -132,26 +125,17 @@ const toggleStatusDropdown = () => {
 const selectFunding = (opt) => { selectedFunding.value = opt; showFundingDropdown.value = false }
 const selectStatus = (opt) => { selectedStatus.value = opt; showStatusDropdown.value = false }
 
-const fundingOptions = ['TechOrda', 'Скидка 30%', 'Скидка 70%', 'Внутренний грант']
+const fundingOptions = ['Грант', 'Полная оплата', 'Со скидкой 30%']
 const statusOptions = ['Студент', 'Выпускник']
 
-const students = ref([
-  { id: 1, name: 'Абдрахманов Ербол', iin: '990101350128', source: 'Скидка 30%', status: 'Студент', debt: false },
-  { id: 2, name: 'Абдулаева Динара', iin: '870213400917', source: 'TechOrda', status: 'Выпускник', debt: true },
-  { id: 3, name: 'Абильдаев Тимур', iin: '950624300675', source: 'TechOrda', status: 'Студент', debt: false },
-  { id: 4, name: 'Агайдарова Аружан', iin: '010501600338', source: 'Внутренний грант', status: 'Выпускник', debt: true },
-  { id: 5, name: 'Адельбеков Рауан Жанатович', iin: '880729450291', source: 'Внутренний грант', status: 'Выпускник', debt: true },
-  { id: 6, name: 'Ажигалиева Гульмира Кайратовна', iin: '920912300141', source: 'Скидка 70%', status: 'Выпускник', debt: true },
-  { id: 7, name: 'Акимов Николай Артёмович', iin: '011015400976', source: 'Внутренний грант', status: 'Выпускник', debt: true },
-  { id: 8, name: 'Алибаева Ляззат Ержановна', iin: '780606350220', source: 'Внутренний грант', status: 'Выпускник', debt: true }
-])
 
 const filteredStudents = computed(() =>
-  students.value.filter((s) => {
+  store.list.filter((s) => {
     const matchesSearch = s.name.toLowerCase().includes(search.value.toLowerCase())
-    const matchesFunding = !selectedFunding.value || s.source === selectedFunding.value
+    const matchesFunding = !selectedFunding.value || s.funding_source === selectedFunding.value
     const matchesStatus = !selectedStatus.value || s.status === selectedStatus.value
-    const matchesDebt = !withDebt.value || s.debt
+    const hasDebt = s.total_cost - s.paid_amount > 0
+    const matchesDebt = !withDebt.value || hasDebt
     return matchesSearch && matchesFunding && matchesStatus && matchesDebt
   })
 )

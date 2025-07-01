@@ -108,7 +108,6 @@
   </ul>
 </div>
 </div>
-
 <!-- Таблица -->
   <table class="w-full border border-purple-200 rounded-lg overflow-hidden text-left">
     <thead class="bg-[rgb(185,179,248)] text-sm font-semibold">
@@ -140,12 +139,12 @@
   <!-- Выручка -->
   <div class="bg-white px-6 py-4 text-sm flex justify-between items-center">
     <div>Выручка</div>
-    <div>{{ totalAmountDisplay }} тг</div>
+    <div>{{ fullTotalAmountDisplay }} тг</div>
   </div>
   <!-- Общая выручка -->
   <div class="bg-[rgb(185,179,248)] px-6 py-4 text-sm font-semibold flex justify-between items-center">
     <div>Общая выручка</div>
-    <div>{{ totalAmountDisplay }} тг</div>
+    <div>{{ fullTotalAmountDisplay }} тг</div>
   </div>
 </div>
 
@@ -163,6 +162,11 @@ import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute } from 'vue-router'
 import Datepicker from 'vue3-datepicker'
 import * as XLSX from 'xlsx'
+import axios from 'axios'
+
+// Reactive state
+const rows = ref([])
+const courses = ref([])
 
 const showCourseDropdown = ref(false)
 const selectedCourse = ref('')
@@ -171,24 +175,49 @@ const searchCourse = ref('')
 const selectedPayment = ref('')
 const paymentOptions = ['Рассрочка', 'Полная оплата']
 
+const startDate = ref(null)
+const endDate = ref(null)
+const showStartPicker = ref(false)
+const showEndPicker = ref(false)
+const startPickerRef = ref(null)
+const endPickerRef = ref(null)
+const popupPosition = ref({ start: '', end: '' })
+const showPaymentDropdown = ref(false)
 
-const courseList = [
-  'Data Science',
-  'Generative AI',
-  'IT право',
-  'Введение в программирование',
-  'Вэб-разработка',
-  'Графический и UI/UX дизайн',
-  'Машинное обучение и ИИ',
-  'Мобильная разработка',
-  'Разработка игр',
-  'Сети и информационная безопасность'
-]
+const route = useRoute()
 
+// Load students and courses from API
+onMounted(async () => {
+  try {
+    const [studentsRes, coursesRes] = await Promise.all([
+      axios.get('/api/students'),
+      axios.get('/api/courses')
+    ])
+
+    courses.value = coursesRes.data
+
+    rows.value = studentsRes.data.map((student) => {
+      const courseObj = courses.value.find(c => c.id === student.course_id || c.name === student.subject)
+      return {
+        date: new Date().toLocaleDateString('ru-RU'), // заменить на student.created_at при наличии
+        amount: (student.paid_amount || 0).toLocaleString('ru-RU'),
+        course: courseObj?.name || student.subject || '–––',
+        student: student.full_name || '',
+        payment: student.funding_source || ''
+      }
+    })
+  } catch (error) {
+    console.error('Ошибка при загрузке данных:', error)
+  }
+})
+
+// Фильтрация выпадающего списка курсов
 const filteredCourses = computed(() =>
-  courseList.filter(course =>
-    course.toLowerCase().includes(searchCourse.value.toLowerCase())
-  )
+  courses.value
+    .map(course => course.name)
+    .filter(name =>
+      name.toLowerCase().includes(searchCourse.value.toLowerCase())
+    )
 )
 
 function toggleCourseDropdown() {
@@ -200,16 +229,7 @@ function selectCourse(course) {
   showCourseDropdown.value = false
 }
 
-const route = useRoute()
-const startDate = ref(null)
-const endDate = ref(null)
-const showStartPicker = ref(false)
-const showEndPicker = ref(false)
-const startPickerRef = ref(null)
-const endPickerRef = ref(null)
-const popupPosition = ref({ start: '', end: '' })
-const showPaymentDropdown = ref(false)
-
+// Дата
 function formatDate(date) {
   return new Date(date).toLocaleDateString('ru-RU')
 }
@@ -263,24 +283,27 @@ const formattedPeriod = computed(() => {
 })
 
 const filteredRows = computed(() => {
-  return rows.filter(row => {
-    const rowDate = new Date(row.date.split('.').reverse().join('-'))
+  return rows.value.filter(row => {
+    if (!row.date || !row.date.includes('.')) return false
+    const parts = row.date.split('.')
+    const rowDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`)
+
     const inPeriod = (!startDate.value || rowDate >= startDate.value)
-                   && (!endDate.value   || rowDate <= endDate.value)
-    const courseMatch  = !selectedCourse.value || row.course === selectedCourse.value
+                  && (!endDate.value   || rowDate <= endDate.value)
+
+    const courseMatch = !selectedCourse.value || row.course === selectedCourse.value
     const paymentMatch = !selectedPayment.value
-                       || row.payment === selectedPayment.value
-                       || row.payment.startsWith(selectedPayment.value)
+                      || row.payment === selectedPayment.value
+                      || row.payment.startsWith(selectedPayment.value)
 
     return inPeriod && courseMatch && paymentMatch
   })
 })
 
-
 const totalAmount = computed(() => {
   if (!startDate.value || !endDate.value) return 0
   return filteredRows.value.reduce((sum, row) => {
-    const cleaned = row.amount.replace(/[^\d]/g, '')  // удаляем все кроме цифр
+    const cleaned = row.amount.replace(/[^\d]/g, '')
     const num = parseInt(cleaned) || 0
     return sum + num
   }, 0)
@@ -302,16 +325,20 @@ function selectPayment(option) {
   showPaymentDropdown.value = false
 }
 
-const rows = [
-  { date: '31.05.2025', amount: '150.000', course: 'Data Science', student: 'Сеитов А.К.', payment: 'Полная оплата' },
-  { date: '31.05.2025', amount: '120.000', course: 'Мобильная разработка', student: 'Муратова И.Н.', payment: 'Рассрочка, 3 платеж' },
-  { date: '31.05.2025', amount: '90.000', course: 'Программирование', student: 'Ахметов Е.М.', payment: 'Рассрочка, 3 платеж' },
-  { date: '29.05.2025', amount: '550.000', course: 'Разработка игр', student: 'Ким А.С.', payment: 'Полная оплата' },
-  { date: '28.05.2025', amount: '45.000', course: 'Машинное обучение и ИИ', student: 'Жанабаева Р.Ш.', payment: 'Полная оплата' },
-  { date: '28.05.2025', amount: '77.000', course: 'Вэб-разработка', student: 'Сергеев Д.И.', payment: 'Рассрочка, 2 платеж' },
-  { date: '28.05.2025', amount: '39.000', course: 'IT право', student: 'Имангазин А.А.', payment: 'Рассрочка, 1 платеж' },
-]
+const fullTotalAmount = computed(() => {
+  return rows.value.reduce((sum, row) => {
+    const cleaned = row.amount.replace(/[^\d]/g, '')
+    const num = parseInt(cleaned) || 0
+    return sum + num
+  }, 0)
+})
+
+const fullTotalAmountDisplay = computed(() => {
+  return fullTotalAmount.value.toLocaleString('ru-RU')
+})
+
 </script>
+
 
 <!-- Styles-->
 <style scoped>
