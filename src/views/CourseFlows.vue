@@ -167,8 +167,9 @@ function onAddFlow() {
   router.push({ name: 'AddFlow', params: { courseId } })
 }
 
+// ✅ Здесь было FlowStudents — заменено на FlowDetail
 function viewStudents(flowId: number) {
-  router.push({ name: 'FlowStudents', params: { flowId } })
+  router.push({ name: 'FlowDetail', params: { flowId } })
 }
 
 function confirmDelete() {

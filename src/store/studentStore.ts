@@ -1,24 +1,25 @@
 import { defineStore } from 'pinia'
 import axios from 'axios'
-import { ref } from 'vue'
 import * as XLSX from 'xlsx'
 
 export interface Student {
-  full_name: string
   id: number
-  name: string
+  full_name: string
   iin: string
   email: string
   phone: string
   status: string
   top_student: boolean
   funding_source: string
+  subject: string
   total_cost: number
   discount_percent: number
   paid_amount: number
-  subject: string
-  stream?: string
-  stream_id?: number
+}
+
+export interface Stream {
+  id: number
+  name: string
 }
 
 export const useStudentStore = defineStore('student', {
@@ -26,102 +27,93 @@ export const useStudentStore = defineStore('student', {
     list: [] as Student[],
     streams: {} as Record<number, string>,
   }),
+
   actions: {
+    // Загрузка всех студентов
     async fetchStudents() {
       try {
         const res = await axios.get('/api/students')
-        this.list = res.data.map((s: any): Student => ({
-          id: s.id,
-          name: s.full_name,
-          full_name: s.full_name,
-          iin: s.iin,
-          email: s.email,
-          phone: s.phone || '',
-          status: s.status || '',
-          top_student: s.top_student,
-          funding_source: s.funding_source || '',
-          subject: s.subject || '',
-          stream: s.stream,
-          stream_id: s.stream_id,
-          total_cost: s.total_cost,
-          paid_amount: s.paid_amount,
-          discount_percent: s.discount_percent,
-        }))
-      } catch (error) {
-        console.error('Ошибка при загрузке студентов:', error)
+        this.list = res.data
+      } catch (err) {
+        console.error('Ошибка при загрузке студентов:', err)
       }
     },
 
+    // Загрузка всех потоков
     async fetchStreams() {
-      const streams = ref<Record<number, string>>({})
-      const res = await fetch('/api/streams')
-      const data = await res.json()
-      this.streams = Object.fromEntries(data.map((s: any) => [s.id, s.name]))
-      console.log('Streams map:', this.streams)
+      try {
+        const res = await axios.get('/api/streams')
+        this.streams = Object.fromEntries(
+          res.data.map((stream: Stream) => [stream.id, stream.name])
+        )
+      } catch (err) {
+        console.error('Ошибка при загрузке потоков:', err)
+      }
     },
 
+    // Создание студента
+    async createStudent(student: Omit<Student, 'id'>) {
+      try {
+        const res = await axios.post('/api/students', student)
+        await this.fetchStudents()
+        return res.data
+      } catch (err) {
+        console.error('Ошибка при создании студента:', err)
+        throw err
+      }
+    },
+
+    // Обновление студента
     async updateStudent(id: number, updatedData: Partial<Student>) {
       try {
-        const response = await fetch(`/api/students/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(updatedData),
-        })
-        if (!response.ok) throw new Error('Failed to update student')
-        const updatedStudent = await response.json()
-
+        await axios.patch(`/api/students/${id}`, updatedData)
         const index = this.list.findIndex((s) => s.id === id)
         if (index !== -1) {
-          this.list[index] = updatedStudent
+          this.list[index] = {
+            ...this.list[index],
+            ...updatedData,
+          }
         }
-      } catch (error) {
-        console.error(error)
-        throw error
+      } catch (err) {
+        console.error('Ошибка при обновлении студента:', err)
+        throw err
       }
     },
 
-    async createStudent(newStudent: Omit<Student, 'id'>) {
+    // Удаление студента
+    async deleteStudent(id: number) {
       try {
-        const response = await fetch('/api/students', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(newStudent),
-        })
-        if (!response.ok) throw new Error('Failed to create student')
-        const createdStudent = await response.json()
-
-        this.list.push(createdStudent)
-      } catch (error) {
-        console.error('Ошибка при создании студента:', error)
-        throw error
+        await axios.post(`/api/students/delete/${id}`)
+        this.list = this.list.filter((s) => s.id !== id)
+      } catch (err) {
+        console.error('Ошибка при удалении студента:', err)
+        throw err
       }
     },
 
-    // 🔽 Новый метод: экспорт в Excel
+    // Экспорт в Excel
     exportToExcel() {
-      const dataToExport = this.list.map((s) => ({
+      const rows = this.list.map((s) => ({
         ID: s.id,
-        ФИО: s.name,
+        ФИО: s.full_name,
         ИИН: s.iin,
         Email: s.email,
         Телефон: s.phone,
         Статус: s.status,
         Топ: s.top_student ? 'Да' : 'Нет',
         Курс: s.subject,
-        Поток: s.stream || '',
-        ИсточникФинансирования: s.funding_source,
-        ОбщаяСтоимость: s.total_cost,
+        Финансирование: s.funding_source,
+        Общая_стоимость: s.total_cost,
         Скидка: s.discount_percent,
         Оплачено: s.paid_amount,
         Осталось: s.total_cost - s.paid_amount,
       }))
 
-      const worksheet = XLSX.utils.json_to_sheet(dataToExport)
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Студенты')
-
+      const sheet = XLSX.utils.json_to_sheet(rows)
+      const wb = XLSX.utils.book_new()
+      XLSX.utils.book_append_sheet(wb, sheet, 'Студенты')
       const now = new Date().toISOString().split('T')[0]
-      XLSX.writeFile(workbook, `students_${now}.xlsx`)
+      XLSX.writeFile(wb, `students_${now}.xlsx`)
     },
   },
 })

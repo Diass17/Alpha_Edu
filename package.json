@@ -43,5 +43,21 @@
     "typescript": "^5.0.0",
     "vite": "^6.3.5",
     "vitest": "^3.1.4"
-  }
+  },
+  "main": "app.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Diass17/Alpha_Edu.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Diass17/Alpha_Edu/issues"
+  },
+  "homepage": "https://github.com/Diass17/Alpha_Edu#readme",
+  "description": ""
 }

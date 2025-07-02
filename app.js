@@ -37,7 +37,8 @@ app.use('/api/flows', flowsRouter);
 const coursesRouter = require('./routes/courses');
 app.use('/api/courses', coursesRouter);
 
-;
+const streamStudentRoutes = require('./routes/stream_students')
+app.use('/api/stream-students', streamStudentRoutes);
 
 
 
