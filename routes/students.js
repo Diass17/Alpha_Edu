@@ -239,47 +239,38 @@ router.post('/students/edit/:id', async (req, res) => {
   }
 });
 
-
-router.patch('/students/:id', async (req, res) => {
-  const { id } = req.params;
-  const fields = [];
-  const values = [];
-  let idx = 1;
-
-  for (const [key, value] of Object.entries(req.body)) {
-    let val = value;
-
-    if (key === 'funding_source') {
-      val = mapFundingSource(value);
-    }
-
-    // Если значение null, не приводим его к строке
-    if (val === null) {
-      fields.push(`${key} = NULL`);
-    } else {
-      fields.push(`${key} = $${idx}`);
-      values.push(val);
-      idx++;
-    }
-  }
-
-  if (fields.length === 0) {
-    return res.status(400).json({ error: 'Нет данных для обновления' });
-  }
-
-  const query = `UPDATE students SET ${fields.join(', ')} WHERE id = $${idx}`;
-  values.push(id);
-
+// Получить все платежи студента
+router.get('/students/:id/payments', async (req, res) => {
+  const studentId = req.params.id;
   try {
-    await pool.query(query, values);
-    res.status(200).json({ message: 'Частичное обновление выполнено' });
-  } catch (error) {
-    console.error('Ошибка при PATCH-обновлении:', error);
-    res.status(500).json({ error: 'Ошибка при обновлении студента' });
+    const result = await pool.query(
+      'SELECT * FROM student_payments WHERE student_id = $1 ORDER BY date ASC',
+      [studentId]
+    );
+    res.status(200).json(result.rows);
+  } catch (err) {
+    console.error('Ошибка при получении платежей:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
+// Добавить новый платёж
+router.post('/students/:id/payments', async (req, res) => {
+  const studentId = req.params.id;
+  const { date, amount, comment, paid } = req.body;
 
+  try {
+    await pool.query(
+      `INSERT INTO student_payments (student_id, date, amount, comment, paid)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [studentId, date, amount, comment || '', paid || false]
+    );
+    res.status(201).json({ message: 'Платёж добавлен' });
+  } catch (err) {
+    console.error('Ошибка при добавлении платежа:', err);
+    res.status(500).json({ error: 'Ошибка при добавлении' });
+  }
+});
 
 
 module.exports = router;

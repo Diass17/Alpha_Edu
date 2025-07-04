@@ -127,7 +127,7 @@
                 {{ idx + 1 }}
               </span>
             </td>
-            <td class="px-6 py-6 text-md text-gray-900">{{ s.name }}</td>
+            <td class="px-6 py-6 text-md text-gray-900">{{ s.full_name }}</td>
             <td class="px-6 py-6 text-md text-gray-900">{{ s.iin }}</td>
             <td class="px-6 py-6 text-md text-gray-900">{{ s.email }}</td>
             <td class="px-6 py-6 text-md text-gray-900">{{ s.phone }}</td>
@@ -204,7 +204,7 @@ const filteredList = computed<Student[]>(() =>
   store.list.filter((s) => {
     const bySearch =
       !searchQuery.value ||
-      s.name?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      s.full_name?.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       s.iin?.includes(searchQuery.value)
     const byCourse = !filter.value.course || s.subject === filter.value.course
     const byStream = !filter.value.stream || s.stream === filter.value.stream

@@ -5,9 +5,9 @@
       <div class="text-center mb-8">
         <el-avatar :src="defaultAvatar" size="100" class="mx-auto mb-4" style="border: 2px solid #E9D8FD;" />
         <h2 class="text-3xl font-bold mb-4 flex justify-center">
-          <template v-if="!isEditing">{{ student?.name || '—' }}</template>
+          <template v-if="!isEditing">{{ student?.full_name || '—' }}</template>
           <template v-else>
-            <el-input v-model="form.name" size="large" class="w-64" />
+            <el-input v-model="form.full_name" size="large" class="w-64" />
           </template>
         </h2>
         <div class="flex items-center">

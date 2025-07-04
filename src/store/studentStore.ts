@@ -15,7 +15,10 @@ export interface Student {
   total_cost: number
   discount_percent: number
   paid_amount: number
+  stream_id?: number          
+  stream?: string             
 }
+
 
 export interface Stream {
   id: number

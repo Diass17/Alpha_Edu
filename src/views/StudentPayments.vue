@@ -74,7 +74,7 @@
         </tr>
       </thead>
       <tbody>
-        <<tr v-for="(student, index) in filteredStudents" :key="student.id"
+        <tr v-for="(student, index) in filteredStudents" :key="student.id"
           @click="$router.push({ name: 'StudentPaymentCalendar', params: { id: student.id } })" class="cursor-pointer">
           <td>
             <div
@@ -82,7 +82,7 @@
               {{ index + 1 }}
             </div>
           </td>
-          <td>{{ student.name }}</td>
+          <td>{{ student.full_name }}</td>
           <td>{{ student.iin }}</td>
           <td>{{ student.funding_source }}</td>
           </tr>
@@ -131,7 +131,7 @@ const statusOptions = ['Студент', 'Выпускник']
 
 const filteredStudents = computed(() =>
   store.list.filter((s) => {
-    const matchesSearch = s.name.toLowerCase().includes(search.value.toLowerCase())
+    const matchesSearch = s.full_name.toLowerCase().includes(search.value.toLowerCase())
     const matchesFunding = !selectedFunding.value || s.funding_source === selectedFunding.value
     const matchesStatus = !selectedStatus.value || s.status === selectedStatus.value
     const hasDebt = s.total_cost - s.paid_amount > 0
