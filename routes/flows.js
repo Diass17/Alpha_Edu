@@ -53,18 +53,27 @@ router.post('/', async (req, res) => {
   }
 });
 
-// ❌ Удалить поток
 router.delete('/:id', async (req, res) => {
   const id = Number(req.params.id);
+
   try {
+    // 1. Удалить из stream_students (если есть зависимости)
+    await db.query('DELETE FROM stream_students WHERE stream_id = $1', [id]);
+
+    // 2. Удалить из streams
+    await db.query('DELETE FROM streams WHERE id = $1', [id]);
+
+    // 3. Удалить из flows
     const result = await db.query('DELETE FROM flows WHERE id = $1', [id]);
+
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Flow not found' });
     }
+
     res.sendStatus(204);
   } catch (err) {
-    console.error('❌ Ошибка при удалении потока:', err);
-    res.status(500).json({ error: 'Error deleting flow' });
+    console.error('❌ Ошибка при удалении потока и stream:', err);
+    res.status(500).json({ error: 'Error deleting flow and stream' });
   }
 });
 
