@@ -155,7 +155,14 @@ router.get('/students/:id', async (req, res) => {
   const id = req.params.id;
 
   try {
-    const result = await pool.query(`SELECT id, full_name, iin, email, phone, status, top_student,funding_source, subject, total_cost, discount_percent,paid_amount, amount_remainingFROM studentsWHERE id = $1`, [id]);
+    const result = await pool.query(`
+      SELECT id, full_name, iin, email, phone, status, top_student,
+           funding_source, subject, total_cost, discount_percent,
+           paid_amount, amount_remaining
+      FROM students
+      WHERE id = $1
+    `, [id]);
+
 
     const student = result.rows[0];
     if (!student) return res.status(404).json({ error: 'Студент не найден' });
