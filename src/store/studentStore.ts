@@ -15,14 +15,30 @@ export interface Student {
   total_cost: number
   discount_percent: number
   paid_amount: number
-  stream_id?: number          
-  stream?: string             
+  amount_remaining: number    
+  stream_id?: number
+  stream?: string
 }
+
 
 
 export interface Stream {
   id: number
   name: string
+}
+
+export interface PaymentEntry {
+  date: string    // 'YYYY-MM-DD'
+  amount: number
+  paid: boolean   // true, если status === 'Оплачено'
+}
+
+export interface StudentFull extends Student {
+  financing: string
+  totalCoursePrice: number
+  discountPercent: number
+  discountedPrice: number
+  paymentSchedule: PaymentEntry[]
 }
 
 export const useStudentStore = defineStore('student', {
@@ -39,6 +55,15 @@ export const useStudentStore = defineStore('student', {
         this.list = res.data
       } catch (err) {
         console.error('Ошибка при загрузке студентов:', err)
+      }
+    },
+    async fetchById(id: number | string): Promise<StudentFull> {
+      try {
+        const res = await axios.get(`/api/students/${id}`)
+        return res.data
+      } catch (err) {
+        console.error('Ошибка при загрузке студента по ID:', err)
+        throw err
       }
     },
 

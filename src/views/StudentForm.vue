@@ -46,10 +46,12 @@
 
         <!-- Финансирование -->
         <el-select v-model="form.financing" placeholder="Финансирование" size="large" class="w-full input-purple">
-          <el-option label="Полная оплата" value="full" />
-          <el-option label="Со скидкой 30%" value="discount" />
-          <el-option label="Грант" value="grant" />
+          <el-option label="TechOrda" value="TechOrda" />
+          <el-option label="Скидка 70%" value="Скидка 70%" />
+          <el-option label="Скидка 30%" value="Скидка 30%" />
+          <el-option label="Внутренний грант" value="Внутренний грант" />
         </el-select>
+
 
         <!-- Предмет -->
         <!-- Предмет -->
@@ -208,8 +210,17 @@ const coursePrice = ref(0)
 const amountPaid = ref(0)
 
 const discountedPrice = computed(() => {
-  return form.financing === 'discount' ? Math.floor(coursePrice.value * 0.7) : coursePrice.value
+  if (form.financing === 'TechOrda' || form.financing === 'Внутренний грант') {
+    return 0
+  } else if (form.financing === 'Скидка 70%') {
+    return Math.floor(coursePrice.value * 0.3)
+  } else if (form.financing === 'Скидка 30%') {
+    return Math.floor(coursePrice.value * 0.7)
+  } else {
+    return coursePrice.value
+  }
 })
+
 
 const amountDue = computed(() => {
   return Math.max(discountedPrice.value - amountPaid.value, 0)
@@ -244,8 +255,12 @@ const submitForm = async () => {
         funding_source: form.financing,
         subject: form.subject,
         total_cost: coursePrice.value,
-        discount_percent: form.financing === 'discount' ? 30 : 0,
+        discount_percent: form.financing === 'Скидка 30%' ? 30
+          : form.financing === 'Скидка 70%' ? 70
+            : (form.financing === 'TechOrda' || form.financing === 'Внутренний грант') ? 100
+              : 0,
         paid_amount: amountPaid.value,
+        amount_remaining: Math.max(discountedPrice.value - amountPaid.value, 0),
       }
 
       await studentStore.createStudent(newStudent)

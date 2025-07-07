@@ -3,7 +3,7 @@
     <h2 class="text-2xl font-bold mb-6">Задолженности</h2>
 
 <!-- Tabs -->
-  <div class="flex space-x-4 bg-purple-50 p-3 rounded-lg mb-4">
+  <div class="flex space-x-4 bg-[#F1EFFF] p-3 rounded-lg mb-4">
     <router-link to="/finance/reports/total-revenue" class="tab-button">Общая выручка</router-link>
     <router-link to="/finance/reports/debts" class="tab-button-active">Задолженности</router-link>
     <router-link to="/finance/reports/student-funding" class="tab-button">Финансирование студентов</router-link>
@@ -45,44 +45,57 @@
       </teleport>
     </div>
 
-      <!-- Статус (дропдаун) -->
-  <div class="relative w-40">
-    <button
-      @click="toggleStatusDropdown"
-      class="filter-select w-full flex justify-between items-center"
+ <!-- Статус (дропдаун) -->
+<div class="relative w-40">
+  <button
+    @click="toggleStatusDropdown"
+    class="filter-select w-full flex justify-between items-center"
+    type="button"
   >
     {{ selectedStatus || 'Статус' }}
-      <svg class="w-4 h-4 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M19 9l-7 7-7-7"/>
-      </svg>
-    </button>
+    <svg
+      :class="[
+        'w-4 h-4 ml-2 transform transition-transform duration-200',
+        showStatusDropdown ? 'rotate-180' : ''
+      ]"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+    >
+      <path
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        stroke-width="2"
+        d="M19 9l-7 7-7-7"
+      />
+    </svg>
+  </button>
   <ul
     v-if="showStatusDropdown"
     class="absolute z-50 mt-2 w-full bg-white border border-purple-200
-    rounded-lg shadow-lg overflow-hidden"
+           rounded-lg shadow-lg overflow-hidden"
   >
-  <li
-    @click="selectStatus('Оплачен')"
-    class="cursor-pointer px-4 py-2 hover:bg-gray-100"
-    :class="{ 'text-[rgb(98,82,254)] font-medium': selectedStatus === 'Оплачен' }"
-  >
-    Оплачен
-  </li>
-  <li
-    @click="selectStatus('Не оплачен')"
-    class="cursor-pointer px-4 py-2 hover:bg-gray-100"
-    :class="{ 'text-[rgb(98,82,254)] font-medium': selectedStatus === 'Не оплачен' }"
-  >
-    Не оплачен
-  </li>
-</ul>
+    <li
+      @click="selectStatus('Оплачен')"
+      class="cursor-pointer px-4 py-2 hover:bg-gray-100"
+      :class="{ 'text-[rgb(98,82,254)] font-medium': selectedStatus === 'Оплачен' }"
+    >
+      Оплачен
+    </li>
+    <li
+      @click="selectStatus('Не оплачен')"
+      class="cursor-pointer px-4 py-2 hover:bg-gray-100"
+      :class="{ 'text-[rgb(98,82,254)] font-medium': selectedStatus === 'Не оплачен' }"
+    >
+      Не оплачен
+    </li>
+  </ul>
 </div>
-</div>
+</div>    
 
 <!-- Table -->
-<table class="w-full border border-purple-200 rounded-lg overflow-hidden text-left">
-  <thead class="bg-[rgb(185,179,248)] text-sm font-semibold">
+<table class="w-full bg-white border border-purple-200 rounded-lg overflow-hidden text-left">
+  <thead class="bg-[#ECE9FF] text-sm font-semibold">
     <tr>
       <th class="px-4 py-2 w-12">№</th>
       <th class="px-4 py-2">Студент</th>
@@ -116,7 +129,7 @@
 <!-- Text Box for Debts -->
 <div class="mt-6 w-full rounded-xl overflow-hidden border border-[#E0D7FF]">
 <!-- Период -->
-<div class="bg-[rgb(185,179,248)] px-6 py-4 text-sm font-semibold text-black">
+<div class="bg-[#ECE9FF] px-6 py-4 text-sm font-semibold text-black">
   Период {{ formattedPeriod }}
 </div>
 <!-- Общая сумма платежей -->
@@ -135,7 +148,7 @@
   <div>{{ unpaidAmount.toLocaleString('ru-RU') }} ₸</div>
 </div>
 <!-- Общая задолженность -->
-<div class="bg-[rgb(185,179,248)] px-6 py-4 text-sm font-semibold flex justify-between items-center">
+<div class="bg-[#ECE9FF] px-6 py-4 text-sm font-semibold flex justify-between items-center">
   <div>Общая задолженность</div>
   <div>{{ unpaidAmount.toLocaleString('ru-RU') }} ₸</div>
 </div>
@@ -149,6 +162,7 @@
   </div>
 </div>
 </template>
+
 
 <!-- Script -->
 <script setup>
@@ -276,6 +290,7 @@ const unpaidAmount = computed(() => totalPayments.value - paidAmount.value);
 
 </script>
 
+
 <!--Styles-->
 <style scoped>
 .tab-button,
@@ -288,17 +303,16 @@ const unpaidAmount = computed(() => totalPayments.value - paidAmount.value);
   display: inline-block;
 }
 .tab-button {
-  background: #f4f0ff;
-  color: #836eff;
+  background: #FFFFFF;
+  color: #6252FE;
 }
 .tab-button-active {
-  background: #836eff;
-  color: white;
+  background: #6252FE;
+  color: #FFFFFF;
 }
 .filter-select {
-  background: #f4f0ff;
+  background: #ffffff;
   color: #836eff;
-  border: 1px solid #cfc0ff;
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 14px;
@@ -326,7 +340,7 @@ const unpaidAmount = computed(() => totalPayments.value - paidAmount.value);
   font-weight: 500;
 }
 .download-btn {
-  background-color: #6252fe;
+  background-color: #6252FE;
   color: white;
   font-size: 14px;
   font-weight: 600;
@@ -336,5 +350,17 @@ const unpaidAmount = computed(() => totalPayments.value - paidAmount.value);
 }
 .download-btn:hover {
   background-color: #5140e5;
+}
+
+.filters-wrapper {
+ background-color: #F1EFFF;
+  border-radius: 12px;
+  padding: 9px;
+  margin-bottom: 16px;
+  margin-left: 0px;
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 </style>

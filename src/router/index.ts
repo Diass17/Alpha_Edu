@@ -1,41 +1,44 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-// 📄 Views
+// 📄 Core Views
 import Home from '@/views/Home.vue'
 import Login from '@/views/Login.vue'
-import Finance from '@/views/Finance.vue'
+import Verification from '@/views/Verification.vue'
 
-// 🧑‍🎓 Student
+// 👨‍🎓 Students
 import Students from '@/views/Students.vue'
 import StudentForm from '@/views/StudentForm.vue'
 import StudentProfile from '@/views/StudentProfile.vue'
 import StudentDetail from '@/views/StudentDetail.vue'
 
-// 📚 Course
+// 📘 Courses
 import Courses from '@/views/Courses.vue'
 import AddCourse from '@/views/AddCourse.vue'
 import CourseForm from '@/views/CourseForm.vue'
 import CourseFlows from '@/views/CourseFlows.vue'
 
 // 🔄 Flows
-import Flows          from '@/views/Flows.vue'
+import Flows from '@/views/Flows.vue'
 import AddFlow from '@/views/AddFlow.vue'
 import FlowDetail from '@/views/FlowDetail.vue'
 import EditFlow from '@/views/EditFlow.vue'
 
-import StudentPayments from '@/views/StudentPayments.vue'
-import Reports from '@/views/Reports.vue'
-import TotalRevenue from '@/views/TotalRevenue.vue'
-import Debts from '@/views/Debts.vue'
-import StudentFunding from '@/views/StudentFunding.vue'
+// 💵 Finance
+import Finance from '@/views/Finance.vue'
 import StudentPaymentCalendar from '@/views/StudentPaymentCalendar.vue'
+
+// 🔧 Components
+import CustomDropdown from '@/components/CustomDropdown.vue'
 
 const routes = [
   { path: '/', redirect: '/login' },
 
-  // 🏠 Auth + Home
+  // 🔐 Auth
   { path: '/login', name: 'Login', component: Login },
-  { path: '/home', name: 'Home', component: Home },
+  { path: '/verification', name: 'Verification', component: Verification, meta: { noLayout: true } },
+
+  // 🏠 Home
+    { path: '/home', name: 'Home', component: Home },
 
   // 👨‍🎓 Students
   { path: '/students', name: 'Students', component: Students },
@@ -51,22 +54,37 @@ const routes = [
   { path: '/courses/:id/flows', name: 'CourseFlows', component: CourseFlows, props: true },
 
   // 🔄 Flows
-  { path: '/flows',               name: 'Flows',           component: Flows },
+  { path: '/flows', name: 'Flows', component: Flows },
   { path: '/courses/:courseId/flows/add', name: 'AddFlow', component: AddFlow, props: true },
   { path: '/flows/:flowId', name: 'FlowDetail', component: FlowDetail, props: true },
   { path: '/flows/:flowId/edit', name: 'EditFlow', component: EditFlow, props: true },
 
   // 💵 Finance
   { path: '/finance', name: 'Finance', component: Finance },
-  { path: '/finance/payments', name: 'StudentPayments', component: StudentPayments},
-  { path: '/finance/reports', name: 'Reports', component: Reports},
-  { path: '/finance/reports/total-revenue', name: 'TotalRevenue', component: TotalRevenue},
-  { path: '/finance/reports/debts', name: 'Debts', component: Debts},
-  { path: '/finance/reports/student-funding', name: 'StudentFunding', component: StudentFunding},
-  { path: '/payments/:id/calendar', name: 'StudentPaymentCalendar', component: StudentPaymentCalendar, props: true},
+  { path: '/finance/payments', name: 'StudentPayments', component: () => import('@/views/StudentPayments.vue') },
+  { path: '/finance/reports', name: 'Reports', component: () => import('@/views/Reports.vue') },
+  { path: '/finance/reports/total-revenue', name: 'TotalRevenue', component: () => import('@/views/TotalRevenue.vue') },
+  { path: '/finance/reports/debts', name: 'Debts', component: () => import('@/views/Debts.vue') },
+  { path: '/finance/reports/student-funding', name: 'StudentFunding', component: () => import('@/views/StudentFunding.vue') },
+  { path: '/payments/:id/calendar', name: 'StudentPaymentCalendar', component: StudentPaymentCalendar, props: true },
+
+  // 🧪 Misc
+  { path: '/dropdown-test', name: 'DropdownTest', component: CustomDropdown }
 ]
 
 export const router = createRouter({
   history: createWebHistory(),
   routes,
+})
+
+// 🔐 Navigation Guard
+router.beforeEach((to, from, next) => {
+  const isAuthenticated = !!localStorage.getItem('token')
+  const publicPages = ['Autorization', 'Verification']
+
+  if (!isAuthenticated && !publicPages.includes(to.name as string)) {
+    return next('/login')
+  }
+
+  next()
 })
