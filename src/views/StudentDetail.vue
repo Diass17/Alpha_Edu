@@ -61,6 +61,12 @@
                   <input type="checkbox" :checked="editForm.topStudent"
                     class="form-checkbox accent-[#38D473] w-5 h-5 border-2 rounded" disabled />
                 </template>
+                <template v-else-if="field.key === 'amount_remaining'">
+                  {{ formatTenge(editForm.amount_remaining ?? 0) }}
+                </template>
+                <template v-else-if="field.key === 'paymentPeriod'">
+                  {{ formatPaymentPeriod(editForm.paymentPeriod) }}
+                </template>
                 <template v-else>
                   {{ editForm[field.key] || '—' }}
                 </template>
@@ -72,30 +78,63 @@
     </div>
 
     <!-- Payment Summary -->
-    <div class="w-full mb-10 rounded-2xl border border-[#F1EFFF] bg-white shadow overflow-hidden">
+    <div class="w-full mb-10 rounded-2xl border border-[#E0D7FF] bg-white shadow overflow-hidden">
       <table class="w-full text-base">
         <thead class="bg-[#F1EFFF] text-sm font-semibold">
           <tr>
             <th class="px-12 py-3">Оплата за курс</th>
-            <th class="px-12 py-3 text-right">{{ formatTenge(editForm.totalCoursePrice ?? 0) }}</th>
+            <th class="px-12 py-3 text-right">
+              <template v-if="isEditing">
+                <input v-model.number="editForm.totalCoursePrice" class="input-basic w-36 text-right" type="number" />
+              </template>
+              <template v-else>
+                {{ formatTenge(editForm.totalCoursePrice ?? 0) }}
+              </template>
+            </th>
           </tr>
         </thead>
         <tbody class="divide-y divide-[#E0D7FF]">
           <tr>
-            <td class="px-12 py-3">Сумма со скидкой {{ editForm.discountPercent ?? 0 }}%</td>
-            <td class="px-12 py-3 text-right">{{ formatTenge(editForm.discountedPrice ?? 0) }}</td>
+            <td class="px-12 py-3">
+              Сумма со скидкой
+              <template v-if="isEditing">
+                <input v-model.number="editForm.discountPercent" class="input-basic w-20 ml-2 text-right inline-block"
+                  type="number" min="0" max="100" />%
+              </template>
+              <template v-else>
+                {{ editForm.discountPercent ?? 0 }}%
+              </template>
+            </td>
+            <td class="px-12 py-3 text-right">
+              <template v-if="isEditing">
+                <input v-model.number="editForm.discountedPrice" class="input-basic w-36 text-right" type="number" />
+              </template>
+              <template v-else>
+                {{ formatTenge(editForm.discountedPrice ?? 0) }}
+              </template>
+            </td>
           </tr>
           <tr>
             <td class="px-12 py-3">Сумма оплачено</td>
-            <td class="px-12 py-3 text-right">{{ formatTenge(amountPaid) }}</td>
+            <td class="px-12 py-3 text-right">
+              <template v-if="isEditing">
+                <input v-model.number="editForm.paid_amount" class="input-basic w-36 text-right" type="number" />
+              </template>
+              <template v-else>
+                {{ formatTenge(amountPaid) }}
+              </template>
+            </td>
           </tr>
           <tr>
             <td class="px-12 py-3">Сумма к оплате</td>
-            <td class="px-12 py-3 text-right">{{ formatTenge(amountDue) }}</td>
+            <td class="px-12 py-3 text-right">
+              {{ formatTenge(amountDue) }}
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
+
 
     <!-- Action Buttons -->
     <div class="w-full flex justify-end">
@@ -153,8 +192,10 @@ const studentFields = [
   { key: 'status', label: 'Статус', editType: CustomDropdown, props: { options: statusOptions, class: 'w-48' } },
   { key: 'topStudent', label: 'Top Student', editType: 'input', props: { type: 'checkbox' } },
   { key: 'financing', label: 'Финансирование', editType: CustomDropdown, props: { options: financingOptions, class: 'w-48' } },
-  { key: 'paymentPeriod', label: 'Календарь платежей', editType: 'input', props: { class: 'input-basic', type: 'number', min: 1, max: 12 } },
+  { key: 'paymentPeriod', label: 'Период оплаты', editType: 'input', props: { class: 'input-basic', type: 'number', min: 1, max: 12 } },
 ]
+
+
 
 onMounted(async () => {
   if (!store.list.length) await store.fetchStudents()
@@ -164,14 +205,20 @@ onMounted(async () => {
   const discount = getDiscountPercent(res.funding_source)
 
   editForm.value = {
-    ...res,
+    full_name: res.full_name,
     course: res.subject,
-    topStudent: res.top_student,
-    financing: res.funding_source,
-    paymentPeriod: res.paymentSchedule?.length ?? 4,
+    stream: res.stream,
+    iin: res.iin,
+    email: res.email,
+    phone: res.phone,
+    status: res.status,
+    topStudent: res.top_student ?? false,
+    financing: res.funding_source ?? '',
+    paymentPeriod: typeof res.paymentPeriod === 'number' ? res.paymentPeriod : parseInt(res.paymentPeriod ?? '4'),
     totalCoursePrice: res.total_cost ?? 0,
-    discountPercent: discount,
-    discountedPrice: Math.round((res.total_cost ?? 0) * (1 - discount / 100)),
+    discountPercent: getDiscountPercent(res.funding_source),
+    discountedPrice: Math.round((res.total_cost ?? 0) * (1 - getDiscountPercent(res.funding_source) / 100)),
+    paid_amount: res.paid_amount ?? 0,
   }
 })
 
@@ -191,14 +238,20 @@ function startEdit() {
   const discount = getDiscountPercent(student.value.funding_source)
 
   editForm.value = {
-    ...student.value,
+    full_name: student.value.full_name,
     course: student.value.subject,
+    stream: student.value.stream,
+    iin: student.value.iin,
+    email: student.value.email,
+    phone: student.value.phone,
+    status: student.value.status,
     topStudent: student.value.top_student ?? false,
     financing: student.value.funding_source ?? '',
-    paymentPeriod: student.value.paymentSchedule?.length ?? 4,
+    paymentPeriod: student.value.paymentPeriod ?? 4,
     totalCoursePrice: student.value.total_cost ?? 0,
-    discountPercent: discount,
-    discountedPrice: Math.round((student.value.total_cost ?? 0) * (1 - discount / 100)),
+    discountPercent: getDiscountPercent(student.value.funding_source),
+    discountedPrice: Math.round((student.value.total_cost ?? 0) * (1 - getDiscountPercent(student.value.funding_source) / 100)),
+    paid_amount: student.value.paid_amount ?? 0,
   }
 
   isEditing.value = true
@@ -220,6 +273,12 @@ function getDiscountPercent(financing: string): number {
   }
 }
 
+function formatPaymentPeriod(val: number): string {
+  if (!val || val === 0) return 'Оплачено полностью'
+  if (val === 1) return '1 месяц'
+  return `${val} месяцев`
+}
+
 
 
 
@@ -232,10 +291,15 @@ async function saveEdit() {
 
   const payload = {
     ...editForm.value,
-    subject: editForm.value.course,                // ✅ правильная передача
+    subject: editForm.value.course,
+    stream: editForm.value.stream,
     top_student: editForm.value.topStudent,
     funding_source: editForm.value.financing,
-    payment_period: editForm.value.paymentPeriod,
+    payment_period: Number(editForm.value.paymentPeriod),
+    total_cost: Number(editForm.value.totalCoursePrice),
+    discount_percent: Number(editForm.value.discountPercent),
+    paid_amount: Number(editForm.value.paid_amount),
+    amount_remaining: Number(editForm.value.discountedPrice ?? 0) - Number(editForm.value.paid_amount),
   }
 
   await store.updateStudent(student.value.id, payload)

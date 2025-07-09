@@ -115,7 +115,7 @@
             </tr>
             <tr>
               <td class="px-6 py-2">Период оплаты</td>
-              <td class="px-6 py-2">{{ student.paymentPeriod }}</td>
+              <td class="px-6 py-2">{{ formatPaymentPeriod(student.paymentPeriod) }}</td>
             </tr>
             <tr>
               <td class="px-6 py-2">Сумма оплачено</td>
@@ -150,11 +150,15 @@
         <div v-for="(item, i) in student.paymentSchedule" :key="i"
           class="flex items-center bg-[rgb(194,189,250)] rounded-lg p-4">
           <!-- Блок с галочкой -->
-          <div class="p-1 mr-4 flex-shrink-0 bg-[#6252FE] rounded border-2 border-white">
-            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <!-- Кнопка-галочка с фиксированным размером -->
+          <button @click="togglePaymentStatus(i)" class="w-7 h-7 mr-4 flex items-center justify-center rounded border-2"
+            :class="item.paid ? 'bg-[#6252FE] border-white' : 'bg-white border-gray-300'">
+            <svg v-if="item.paid" class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
             </svg>
-          </div>
+          </button>
+
+
 
           <!-- Дата и статус -->
           <div class="flex flex-col">
@@ -272,7 +276,6 @@ import { useStudentStore } from '@/store/studentStore'
 import Datepicker from "@vuepic/vue-datepicker"
 import "@vuepic/vue-datepicker/dist/main.css"
 
-
 interface ScheduleItem {
   date: string
   amount: number
@@ -288,69 +291,63 @@ interface Student {
   status: string
   email: string
   phone: string
-
   totalCoursePrice: number
   discountPercent: number
   discountedPrice: number
-  paymentPeriod: string
+  paymentPeriod: number
   amountPaid: number
   amountDue: number
-
-  sampleDate: string
-  sampleStatus: string
-  sampleAmount: number
-
   paymentSchedule: ScheduleItem[]
 }
 
 interface RouteProps { id: string }
-
 const props = defineProps<RouteProps>()
-const showNewPaymentForm = ref(false)
-const showAddPanel = ref(false)
+
+// Хранилище
 const store = useStudentStore()
+
+// Основные состояния
 const student = ref<Student | null>(null)
 const mode = ref<'calendar' | 'history'>('calendar')
 
-// Статус
+// Выпадающий список статуса
 const statusOptions = ['Студент', 'Выпускник']
-const selectedStatus = ref<string>('')
+const selectedStatus = ref('')
 const showStatusDropdown = ref(false)
-// Top Student
+
+// Флаг "Top Student"
 const topStudent = ref(false)
-const historyStatusOptions = ['Оплачен', 'Не оплачен']
-const showNewStatusDropdown = ref(false)
-// Финансирование
+
+// Выпадающий список финансирования
 const financingOptions = ['TechOrda', 'Скидка 30%', 'Скидка 70%', 'Внутренний грант']
-const selectedFinancing = ref<string>('')
+const selectedFinancing = ref('')
 const showFinancingDropdown = ref(false)
-// Панель «Добавить платёж»
-const newPayment = reactive<{
-  date?: Date
-  comment: string
-  status: string
-  amount: number | null
-}>({
-  date: undefined,
+
+// Форма добавления платежа
+const showAddPanel = ref(false)
+const showNewStatusDropdown = ref(false)
+const newPayment = reactive({
+  date: undefined as Date | undefined,
   comment: '',
   status: '',
-  amount: null
+  amount: null as number | null
 })
 
+// Методы переключения
 function toggleStatusDropdown() {
   showStatusDropdown.value = !showStatusDropdown.value
   showFinancingDropdown.value = false
 }
+
+function togglePaymentStatus(index: number) {
+  if (!student.value) return
+  student.value.paymentSchedule[index].paid = !student.value.paymentSchedule[index].paid
+}
+
+
 function selectStatus(opt: string) {
   selectedStatus.value = opt
   showStatusDropdown.value = false
-}
-function addPayment() {
-  //  Логика открытия формы или API-запроса
-  showNewPaymentForm.value = true
-}
-function onAddPayment() {
-  showAddPanel.value = !showAddPanel.value
 }
 
 function toggleFinancingDropdown() {
@@ -363,13 +360,6 @@ function selectFinancing(opt: string) {
   showFinancingDropdown.value = false
 }
 
-// Формат даты
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString('ru-RU', {
-    day: 'numeric', month: 'long', year: 'numeric'
-  })
-}
-
 function toggleNewStatusDropdown() {
   showNewStatusDropdown.value = !showNewStatusDropdown.value
 }
@@ -379,104 +369,109 @@ function selectNewStatus(opt: string) {
   showNewStatusDropdown.value = false
 }
 
-function formatDateIso(iso: string) {
-  const d = new Date(iso)
-  return d.toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
+function onAddPayment() {
+  showAddPanel.value = !showAddPanel.value
+}
+
+// Форматирование даты
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
     year: 'numeric'
   })
 }
 
-async function saveNewPayment() {
-  if (!student.value || !newPayment.date || !newPayment.amount || !newPayment.status) {
-    return
-  }
-  // Добавляем в расписание
+function formatPaymentPeriod(val: number | null | undefined): string {
+  if (!val || val === 0) return 'Оплачено полностью'
+  if (val === 1) return '1 месяц'
+  return `${val} месяцев`
+}
+
+
+// Добавление нового платежа
+function saveNewPayment() {
+  if (!student.value || !newPayment.date || !newPayment.amount || !newPayment.status) return
+
   student.value.paymentSchedule.push({
     date: newPayment.date.toISOString().slice(0, 10),
     amount: newPayment.amount,
     paid: newPayment.status === 'Оплачен',
     comment: newPayment.comment
   })
-  // Сбрасываем форму
-  newPayment.date = undefined
-  newPayment.comment = ''
-  newPayment.status = ''
-  newPayment.amount = null
+
+  // Сброс формы
+  Object.assign(newPayment, {
+    date: undefined,
+    comment: '',
+    status: '',
+    amount: null
+  })
+
   mode.value = 'history'
-  showNewPaymentForm.value = false
+  showAddPanel.value = false
 }
 
-// ваш onMounted с загрузкой student.value и paymentSchedule
+// Загрузка данных студента
 onMounted(async () => {
-  // Если список студентов ещё не загружен — загрузим его
   if (!store.list.length) {
     await store.fetchStudents()
   }
 
-  // Находим нужного студента по id из props
   const s = store.list.find(x => x.id === +props.id)
   if (!s) return
 
-  // Заполняем student.value всеми полями, в том числе обязательными status и financing
+  // === ЛОГИКА РАСЧЁТА СКИДКИ ПО FUNDING SOURCE ===
+  let discountPercent = 0
+  const fs = s.funding_source
+
+  if (fs === 'TechOrda' || fs === 'Внутренний грант') {
+    discountPercent = 100
+  } else if (fs === 'Скидка 70%' || fs === 'со скидкой 70%') {
+    discountPercent = 70
+  } else if (fs === 'Скидка 30%' || fs === 'со скидкой 30%') {
+    discountPercent = 30
+  }
+
+  const discountedPrice = s.total_cost - (s.total_cost * (discountPercent / 100))
+  const amountDue = discountedPrice - s.paid_amount
+
   student.value = {
     id: s.id,
     name: s.full_name,
     iin: s.iin,
     stream: s.stream || '',
     status: s.status || 'Активен',
-    email: 'example@mail.com',
-    phone: '+7(777)-111-11-11',
-    totalCoursePrice: 850000,
-    discountPercent: 30,
-    discountedPrice: 595000,
-    paymentPeriod: '6 месяца',
-    amountPaid: 595000,
-    amountDue: 0,
-    sampleDate: '24.06.2025',
-    sampleStatus: 'Погашен',
-    sampleAmount: 595000,
+    email: s.email || 'example@mail.com',
+    phone: s.phone || '+7(777)-111-11-11',
+    totalCoursePrice: s.total_cost,
+    discountPercent,
+    discountedPrice,
+    paymentPeriod: s.payment_period ?? 0,
+    amountPaid: s.paid_amount,
+    amountDue,
     paymentSchedule: []
   }
 
+  if (!student.value) return;
 
-  if (!student.value) {
-    return
-  }
+  const period = student.value.paymentPeriod ?? 4
+  const months = period || 0
+  const perMonth = Math.round(discountedPrice / months)
+  const startDate = new Date()
 
-  // Деструктурируем необходимые поля — TS знает, что student.value != null
-  const {
-    paymentPeriod: period,
-    sampleDate,
-    discountedPrice,
-    amountPaid,
-  } = student.value
+  student.value.paymentSchedule = Array.from({ length: months }, (_, i) => {
+    const date = new Date(startDate)
+    date.setMonth(startDate.getMonth() + i)
 
-  if (period === 'Оплачена полная сумма') {
-    student.value.paymentSchedule = [{
-      date: sampleDate,
-      amount: discountedPrice,
-      paid: true,
-    }]
-  } else {
-    const months = parseInt(period, 10) || 1
-    const perMonth = Math.round(discountedPrice / months)
-
-    student.value.paymentSchedule = Array.from(
-      { length: months },
-      (_, i) => ({
-        date: `Месяц ${i + 1}`,
-        amount: perMonth,
-        paid: i < Math.floor(amountPaid),
-      })
-    )
-  }
-
-  // Cтатус студента(dropdown)
-  selectedStatus.value = s.status === 'graduated' ? 'Выпускник' : 'Студент'
-  topStudent.value = !!(s as any).topStudent
+    return {
+      date: date.toISOString().split('T')[0],
+      amount: perMonth,
+      paid: i < Math.floor(s.paid_amount / perMonth)
+    }
+  })
 })
+
 </script>
 
 
@@ -548,5 +543,9 @@ table {
 
 .add-payment-btn:hover {
   background-color: #5140E5;
+}
+
+button:hover svg {
+  opacity: 0.85;
 }
 </style>

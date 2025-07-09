@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import axios from 'axios'
 import * as XLSX from 'xlsx'
 
+// 📌 Тип студента из API
 export interface Student {
   id: number
   full_name: string
@@ -15,29 +16,32 @@ export interface Student {
   total_cost: number
   discount_percent: number
   paid_amount: number
-  amount_remaining: number    
+  amount_remaining: number
+  payment_period: number // ✅ snake_case из API
   stream_id?: number
   stream?: string
 }
 
-
-
+// 📌 Тип для потоков
 export interface Stream {
   id: number
   name: string
 }
 
+// 📌 Единичный платёж
 export interface PaymentEntry {
-  date: string    // 'YYYY-MM-DD'
+  date: string
   amount: number
-  paid: boolean   // true, если status === 'Оплачено'
+  paid: boolean
 }
 
-export interface StudentFull extends Student {
+// 📌 Полная модель студента на фронте
+export interface StudentFull extends Omit<Student, 'payment_period'> {
   financing: string
   totalCoursePrice: number
   discountPercent: number
   discountedPrice: number
+  paymentPeriod: number // ✅ адаптированное поле
   paymentSchedule: PaymentEntry[]
 }
 
@@ -48,7 +52,7 @@ export const useStudentStore = defineStore('student', {
   }),
 
   actions: {
-    // Загрузка всех студентов
+    // 📥 Загрузка всех студентов
     async fetchStudents() {
       try {
         const res = await axios.get('/api/students')
@@ -57,17 +61,45 @@ export const useStudentStore = defineStore('student', {
         console.error('Ошибка при загрузке студентов:', err)
       }
     },
+
+    // 📥 Загрузка одного студента
     async fetchById(id: number | string): Promise<StudentFull> {
       try {
         const res = await axios.get(`/api/students/${id}`)
-        return res.data
+        const s = res.data
+
+        return {
+          id: s.id,
+          full_name: s.full_name,
+          iin: s.iin,
+          email: s.email,
+          phone: s.phone,
+          status: s.status,
+          top_student: s.top_student,
+          funding_source: s.funding_source,
+          subject: s.subject,
+          total_cost: s.total_cost,
+          discount_percent: s.discount_percent,
+          paid_amount: s.paid_amount,
+          amount_remaining: s.amount_remaining,
+          stream_id: s.stream_id,
+          stream: s.stream,
+
+          // 🔄 Преобразованные поля
+          financing: s.funding_source || '',
+          totalCoursePrice: s.total_cost,
+          discountPercent: s.discount_percent,
+          discountedPrice: Math.round(s.total_cost * (1 - s.discount_percent / 100)),
+          paymentPeriod: s.payment_period,
+          paymentSchedule: s.paymentSchedule ?? [],
+        }
       } catch (err) {
         console.error('Ошибка при загрузке студента по ID:', err)
         throw err
       }
     },
 
-    // Загрузка всех потоков
+    // 📥 Загрузка потоков
     async fetchStreams() {
       try {
         const res = await axios.get('/api/streams')
@@ -79,8 +111,9 @@ export const useStudentStore = defineStore('student', {
       }
     },
 
-    // Создание студента
-    async createStudent(student: Omit<Student, 'id'>) {
+    // ➕ Создание студента
+    async createStudent(student: Omit<StudentFull,
+      'id' | 'discountedPrice' | 'paymentSchedule' | 'financing' | 'totalCoursePrice' | 'discountPercent'>) {
       try {
         const res = await axios.post('/api/students', student)
         await this.fetchStudents()
@@ -91,10 +124,10 @@ export const useStudentStore = defineStore('student', {
       }
     },
 
-    // Обновление студента
+    // ✏️ Обновление студента
     async updateStudent(id: number, updatedData: Partial<Student>) {
       try {
-        await axios.patch(`/api/students/${id}`, updatedData)
+        await axios.put(`/api/students/${id}`, updatedData)
         const index = this.list.findIndex((s) => s.id === id)
         if (index !== -1) {
           this.list[index] = {
@@ -108,7 +141,7 @@ export const useStudentStore = defineStore('student', {
       }
     },
 
-    // Удаление студента
+    // ❌ Удаление студента
     async deleteStudent(id: number) {
       try {
         await axios.post(`/api/students/delete/${id}`)
@@ -119,7 +152,7 @@ export const useStudentStore = defineStore('student', {
       }
     },
 
-    // Экспорт в Excel
+    // 📤 Экспорт в Excel
     exportToExcel() {
       const rows = this.list.map((s) => ({
         ID: s.id,

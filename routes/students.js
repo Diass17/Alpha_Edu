@@ -43,24 +43,26 @@ router.get('/students', async (req, res) => {
     let result;
 
     const baseQuery = `
-      SELECT 
-        students.id,
-        students.full_name,
-        students.iin,
-        students.email,
-        students.phone,
-        students.status,
-        students.top_student,
-        students.funding_source,
-        students.subject,
-        students.total_cost,
-        students.discount_percent,
-        students.paid_amount,
-        students.stream_id,
-        streams.name AS stream
-      FROM students
-      LEFT JOIN streams ON students.stream_id = streams.id
-    `;
+  SELECT 
+    students.id,
+    students.full_name,
+    students.iin,
+    students.email,
+    students.phone,
+    students.status,
+    students.top_student,
+    students.funding_source,
+    students.subject,
+    students.total_cost,
+    students.discount_percent,
+    students.paid_amount,
+    students.payment_period, -- добавлено поле
+    students.stream_id,
+    streams.name AS stream
+  FROM students
+  LEFT JOIN streams ON students.stream_id = streams.id
+`;
+
 
     if (search) {
       result = await pool.query(
@@ -93,7 +95,8 @@ router.post('/students', async (req, res) => {
   console.log('Получено:', req.body);
   const {
     full_name, iin, email, phone, status, top_student,
-    funding_source, subject, total_cost, discount_percent, paid_amount
+    funding_source, subject, total_cost, discount_percent, paid_amount,
+    payment_period
   } = req.body;
 
   const fundingSource = mapFundingSource(funding_source);
@@ -112,11 +115,11 @@ router.post('/students', async (req, res) => {
       `INSERT INTO students (
     full_name, iin, email, phone, status, top_student,
     funding_source, subject, total_cost, discount_percent,
-    paid_amount
+    paid_amount, payment_period
   ) VALUES (
     $1, $2, $3, $4, $5, $6,
     $7, $8, $9, $10,
-    $11
+    $11, $12
   )`,
       [
         full_name,
@@ -129,7 +132,8 @@ router.post('/students', async (req, res) => {
         subject,
         total_cost || 0,
         discount_percent || 0,
-        paid_amount || 0
+        paid_amount || 0,
+        payment_period || 4
       ]
     );
     res.status(201).json({ message: 'Студент добавлен' });
@@ -155,30 +159,37 @@ router.get('/students/:id', async (req, res) => {
   const id = req.params.id;
 
   try {
-    const result = await pool.query(`
+    const studentRes = await pool.query(`
       SELECT id, full_name, iin, email, phone, status, top_student,
            funding_source, subject, total_cost, discount_percent,
-           paid_amount, amount_remaining
+           paid_amount, amount_remaining, payment_period
       FROM students
       WHERE id = $1
     `, [id]);
 
-
-    const student = result.rows[0];
+    const student = studentRes.rows[0];
     if (!student) return res.status(404).json({ error: 'Студент не найден' });
 
-    res.status(200).json(student);
+    // Преобразование payment_period в строку
+    student.payment_period = String(student.payment_period);
+
+    res.status(200).json({ ...student, paymentSchedule: [] });
   } catch (err) {
     console.error('Ошибка при загрузке студента:', err);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
+
+
+
+
 router.put('/students/:id', async (req, res) => {
   const id = req.params.id;
   const {
     full_name, iin, email, phone, status, top_student,
-    funding_source, subject, total_cost, discount_percent, paid_amount
+    funding_source, subject, total_cost, discount_percent,
+    paid_amount, payment_period
   } = req.body;
 
   try {
@@ -194,11 +205,13 @@ router.put('/students/:id', async (req, res) => {
     subject = $8,
     total_cost = $9,
     discount_percent = $10,
-    paid_amount = $11
-  WHERE id = $12`,
+    paid_amount = $11,
+    payment_period = $12
+  WHERE id = $13`,
       [
         full_name, iin, email, phone, status, top_student,
-        funding_source, subject, total_cost, discount_percent, paid_amount, id
+        funding_source, subject, total_cost, discount_percent,
+        paid_amount, payment_period, id
       ]
     );
 
