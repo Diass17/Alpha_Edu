@@ -119,11 +119,11 @@
             </tr>
             <tr>
               <td class="px-6 py-2">Сумма оплачено</td>
-              <td class="px-6 py-2">{{ student.amountPaid.toLocaleString('ru-RU') }} ₸</td>
+              <td class="px-6 py-2">{{ amountDue.toLocaleString('ru-RU') }} ₸</td>
             </tr>
             <tr>
               <td class="px-6 py-2">Сумма к оплате</td>
-              <td class="px-6 py-2">{{ student.amountDue.toLocaleString('ru-RU') }} ₸</td>
+              <td class="px-6 py-2">{{ amountPaid.toLocaleString('ru-RU') }} ₸</td>
             </tr>
           </tbody>
         </table>
@@ -271,10 +271,11 @@
 
 <!-- Script -->
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { useStudentStore } from '@/store/studentStore'
 import Datepicker from "@vuepic/vue-datepicker"
 import "@vuepic/vue-datepicker/dist/main.css"
+import axios from 'axios'
 
 interface ScheduleItem {
   date: string
@@ -339,12 +340,6 @@ function toggleStatusDropdown() {
   showFinancingDropdown.value = false
 }
 
-function togglePaymentStatus(index: number) {
-  if (!student.value) return
-  student.value.paymentSchedule[index].paid = !student.value.paymentSchedule[index].paid
-}
-
-
 function selectStatus(opt: string) {
   selectedStatus.value = opt
   showStatusDropdown.value = false
@@ -372,6 +367,20 @@ function selectNewStatus(opt: string) {
 function onAddPayment() {
   showAddPanel.value = !showAddPanel.value
 }
+
+const amountPaid = computed(() => {
+  if (!student.value) return 0
+  // Теперь считаем только НЕоплаченные платежи
+  return student.value.paymentSchedule.reduce((sum, item) => {
+    return !item.paid ? sum + item.amount : sum
+  }, 0)
+})
+
+const amountDue = computed(() => {
+  if (!student.value) return 0
+  return student.value.discountedPrice - amountPaid.value
+})
+
 
 // Форматирование даты
 function formatDate(iso: string) {
@@ -421,19 +430,14 @@ onMounted(async () => {
   const s = store.list.find(x => x.id === +props.id)
   if (!s) return
 
-  // === ЛОГИКА РАСЧЁТА СКИДКИ ПО FUNDING SOURCE ===
+  // Расчёт скидки
   let discountPercent = 0
   const fs = s.funding_source
+  if (fs === 'TechOrda' || fs === 'Внутренний грант') discountPercent = 100
+  else if (fs === 'Скидка 70%' || fs === 'со скидкой 70%') discountPercent = 70
+  else if (fs === 'Скидка 30%' || fs === 'со скидкой 30%') discountPercent = 30
 
-  if (fs === 'TechOrda' || fs === 'Внутренний грант') {
-    discountPercent = 100
-  } else if (fs === 'Скидка 70%' || fs === 'со скидкой 70%') {
-    discountPercent = 70
-  } else if (fs === 'Скидка 30%' || fs === 'со скидкой 30%') {
-    discountPercent = 30
-  }
-
-  const discountedPrice = s.total_cost - (s.total_cost * (discountPercent / 100))
+  const discountedPrice = s.total_cost - (s.total_cost * discountPercent / 100)
   const amountDue = discountedPrice - s.paid_amount
 
   student.value = {
@@ -453,24 +457,26 @@ onMounted(async () => {
     paymentSchedule: []
   }
 
-  if (!student.value) return;
-
-  const period = student.value.paymentPeriod ?? 4
-  const months = period || 0
-  const perMonth = Math.round(discountedPrice / months)
-  const startDate = new Date()
-
-  student.value.paymentSchedule = Array.from({ length: months }, (_, i) => {
-    const date = new Date(startDate)
-    date.setMonth(startDate.getMonth() + i)
-
-    return {
-      date: date.toISOString().split('T')[0],
-      amount: perMonth,
-      paid: i < Math.floor(s.paid_amount / perMonth)
-    }
-  })
+  // 💾 Загрузка платежей из БД
+  const response = await axios.get(`/api/student-payments/${s.id}`)
+  student.value.paymentSchedule = response.data
 })
+
+
+async function togglePaymentStatus(index: number) {
+  if (!student.value) return
+  const item = student.value.paymentSchedule[index]
+  item.paid = !item.paid
+
+  // Сохрани на сервер (если нужно)
+  try {
+    await axios.put(`/api/students/${student.value.id}/payments`, {
+      schedule: student.value.paymentSchedule
+    })
+  } catch (err) {
+    console.error('Ошибка при сохранении платежа', err)
+  }
+}
 
 </script>
 

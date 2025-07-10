@@ -2,114 +2,54 @@
   <div class="p-6 font-inter">
     <h2 class="text-2xl font-bold mb-6">Финансирование студентов</h2>
 
-<!-- Кнопки фильтрации вкладок -->
-  <div class="flex space-x-4 bg-[#F1EFFF] p-3 rounded-lg mb-4">
-    <router-link
-      to="/finance/reports/total-revenue"
-      class="tab-button"
-      :class="{ 'tab-button-active': route.path === '/finance/reports/total-revenue' }"
-    >
-    Общая выручка</router-link>
-    <router-link
-      to="/finance/reports/debts"
-      class="tab-button"
-      :class="{ 'tab-button-active': route.path === '/finance/reports/debts' }"
-  >
-    Задолженности</router-link>
-    <router-link
-      to="/finance/reports/student-funding"
-      class="tab-button"
-      :class="{ 'tab-button-active': route.path === '/finance/reports/student-funding' }"
-  >
-    Финансирование студентов</router-link>
-</div>
+    <!-- Кнопки фильтрации вкладок -->
+    <div class="flex space-x-4 bg-[#F1EFFF] p-3 rounded-lg mb-4">
+      <router-link to="/finance/reports/total-revenue" class="tab-button"
+        :class="{ 'tab-button-active': route.path === '/finance/reports/total-revenue' }">
+        Общая выручка</router-link>
+      <router-link to="/finance/reports/debts" class="tab-button"
+        :class="{ 'tab-button-active': route.path === '/finance/reports/debts' }">
+        Задолженности</router-link>
+      <router-link to="/finance/reports/student-funding" class="tab-button"
+        :class="{ 'tab-button-active': route.path === '/finance/reports/student-funding' }">
+        Финансирование студентов</router-link>
+    </div>
 
-<!-- Фильтры -->
-  <div class="filters-wrapper relative flex flex-wrap gap-3 mb-6">
+    <!-- Фильтры -->
+    <div class="filters-wrapper relative flex flex-wrap gap-3 mb-6">
 
-<!-- Тип финансирования -->
-<div class="relative w-56">
-  <button
-    @click="toggleFundingType"
-    class="filter-select w-full flex justify-between items-center"
-    type="button"
-  >
-    {{ selectedFundingType || 'Тип финансирования' }}
-    <svg
-      :class="[
-        'w-4 h-4 ml-2 transform transition-transform duration-200',
-        showFundingType ? 'rotate-180' : ''
-      ]"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M19 9l-7 7-7-7"
-      />
-    </svg>
-  </button>
-  <ul
-    v-if="showFundingType"
-    class="absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg"
-  >
-    <li
-      v-for="option in fundingTypes"
-      :key="option"
-      @click="selectFundingType(option)"
-      class="cursor-pointer px-4 py-2 hover:bg-gray-100"
-      :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFundingType === option }"
-    >
-      {{ option }}
-    </li>
-  </ul>
-</div>
+      <!-- Тип финансирования -->
+      <div class="relative w-56">
+        <button @click="toggleFundingType" class="filter-select w-full flex justify-between items-center funding-btn"
+          type="button">
 
-<!-- Процент покрытия -->
-<div class="relative w-56">
-  <button
-    @click="toggleCoveragePercent"
-    class="filter-select w-full flex justify-between items-center"
-    type="button"
-  >
-    {{ selectedCoverage || 'Процент покрытия' }}
-    <svg
-      :class="[
-        'w-4 h-4 ml-2 transform transition-transform duration-200',
-        showCoveragePercent ? 'rotate-180' : ''
-      ]"
-      fill="none"
-      stroke="currentColor"
-      viewBox="0 0 24 24"
-    >
-      <path
-        stroke-linecap="round"
-        stroke-linejoin="round"
-        stroke-width="2"
-        d="M19 9l-7 7-7-7"
-      />
-    </svg>
-  </button>
+          {{ selectedFundingType || 'Тип финансирования' }}
+          <svg :class="[
+            'w-4 h-4 ml-2 transform transition-transform duration-200',
+            showFundingType ? 'rotate-180' : ''
+          ]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+        <ul v-if="showFundingType"
+          class="funding-dropdown absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg">
+          <li v-for="option in fundingTypes" :key="option" @click="selectFundingType(option)"
+            class="cursor-pointer px-4 py-2 hover:bg-gray-100"
+            :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFundingType === option }">
+            {{ option }}
+          </li>
+        </ul>
+      </div>
 
-  <ul
-    v-if="showCoveragePercent"
-    class="absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg"
-  >
-    <li
-      v-for="option in coveragePercents"
-      :key="option"
-      @click="selectCoverage(option)"
-      class="cursor-pointer px-4 py-2 hover:bg-gray-100"
-      :class="{ 'text-[rgb(98,82,254)] font-medium': selectedCoverage === option }"
-    >
-      {{ option }}
-    </li>
-  </ul>
-</div>
-</div>
+      <!-- Очистить фильтры -->
+      <div class="relative">
+        <button @click="clearFilters" class="filter-select w-full flex justify-between items-center coverage-btn"
+          type="button">
+          Очистить фильтры
+        </button>
+      </div>
+
+    </div>
 
     <!-- Таблица студентов -->
     <table class="w-full bg-white text-left border border-purple-200 rounded-lg overflow-hidden">
@@ -118,91 +58,86 @@
           <th class="px-4 py-2 w-12">№</th>
           <th class="px-4 py-2">Студент</th>
           <th class="px-4 py-2">Тип финансирования</th>
-          <th class="px-4 py-2">Процент покрытия</th>
           <th class="px-4 py-2">Стоимость обучения (тг)</th>
-          <th class="px-4 py-2">Сумма покрытия (тг)</th>
+          <th class="px-4 py-2">Cумма скидки (тг)</th>
           <th class="px-4 py-2">К оплате (тг)</th>
-        </tr>  
+        </tr>
       </thead>
       <tbody>
         <tr v-for="(s, i) in filteredStudents" :key="i" class="border-t">
-        <td class="px-4 py-2">
-          <span class="inline-block bg-[#F1ECFF] text-[#6252FE] font-semibold text-xs rounded-full w-6 h-6 text-center leading-6">
-            {{ i + 1 }}
-          </span>
-        </td>
+          <td class="px-4 py-2">
+            <span
+              class="inline-block bg-[#F1ECFF] text-[#6252FE] font-semibold text-xs rounded-full w-6 h-6 text-center leading-6">
+              {{ i + 1 }}
+            </span>
+          </td>
           <td class="px-4 py-2">{{ s.name }}</td>
           <td class="px-4 py-2">{{ s.funding }}</td>
-          <td class="px-4 py-2">{{ s.percent }}</td>
           <td class="px-4 py-2">{{ s.total }}</td>
           <td class="px-4 py-2">{{ s.covered }}</td>
           <td class="px-4 py-2">{{ s.pay }}</td>
         </tr>
       </tbody>
-    </table> 
+    </table>
 
     <!-- Итоговая таблица -->
-<div class="mt-6 w-full bg-white overflow-hidden rounded-xl border border-[#E0D7FF]">
-    <table class="w-full text-sm text-left border-collapse">
-       <thead>
-        <tr class="bg-[#ECE9FF] font-semibold divide-x divide-[#E0D7FF]">
-          <th class="px-4 py-2">Тип финансирования</th>
-          <th class="px-4 py-2">Кол-во студентов</th>
-          <th class="px-4 py-2">Покрытие (%)</th>
-          <th class="px-4 py-2">Общая сумма покрытия (тг)</th>
-          <th class="px-4 py-2">Всего оплачено студентами (тг)</th>
-        </tr>
-      </thead>
-    <tbody class="divide-y divide-[#E0D7FF]">
-      <tr v-for="(group,i) in fundingSummary"
-        :key="i"
-        class="divide-x divide-[#E0D7FF]">
-          <td class="px-4 py-2">{{ group.type }}</td>
-          <td class="px-4 py-2">{{ group.count }}</td>
-          <td class="px-4 py-2">{{ group.percent }}</td>
-          <td class="px-4 py-2">{{ group.covered }}</td>
-          <td class="px-4 py-2">{{ group.paid }}</td>
-      </tr>
-      <tr class="bg-[#ECE9FF] font-semibold divide-x divide-[#E0D7FF]">
-          <td class="px-4 py-2">Итого</td>
-          <td class="px-4 py-2">{{ fundingTotal.count }}</td>
-          <td class="px-4 py-2">-</td>
-          <td class="px-4 py-2">{{ fundingTotal.covered }}</td>
-          <td class="px-4 py-2">{{ fundingTotal.paid }}</td>
-        </tr>
-    </tbody>
-  </table>
-</div>
+    <div class="mt-6 w-full bg-white overflow-hidden rounded-xl border border-[#E0D7FF]">
+      <table class="w-full text-sm text-left border-collapse">
+        <thead>
+          <tr class="bg-[#ECE9FF] font-semibold divide-x divide-[#E0D7FF]">
+            <th class="px-4 py-2">Тип финансирования</th>
+            <th class="px-4 py-2">Кол-во студентов</th>
+            <th class="px-4 py-2">Покрытие (%)</th>
+            <th class="px-4 py-2">Общая сумма покрытия (тг)</th>
+            <th class="px-4 py-2">Всего оплачено студентами (тг)</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#E0D7FF]">
+          <tr v-for="(group, i) in fundingSummary" :key="i" class="divide-x divide-[#E0D7FF]">
+            <td class="px-4 py-2">{{ group.type }}</td>
+            <td class="px-4 py-2">{{ group.count }}</td>
+            <td class="px-4 py-2">{{ group.percent }}</td>
+            <td class="px-4 py-2">{{ group.covered }}</td>
+            <td class="px-4 py-2">{{ group.paid }}</td>
+          </tr>
+          <tr class="bg-[#ECE9FF] font-semibold divide-x divide-[#E0D7FF]">
+            <td class="px-4 py-2">Итого</td>
+            <td class="px-4 py-2">{{ fundingTotal.count }}</td>
+            <td class="px-4 py-2">-</td>
+            <td class="px-4 py-2">{{ fundingTotal.covered }}</td>
+            <td class="px-4 py-2">{{ fundingTotal.paid }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-<!-- Кнопка Сохранить Excel -->
-<div class="mt-4 flex justify-end">
-  <button @click="downloadExcel" class="download-btn">Сохранить в Excel</button>
-</div>
-</div>
+    <!-- Кнопка Сохранить Excel -->
+    <div class="mt-4 flex justify-end">
+      <button @click="downloadExcel" class="download-btn">Сохранить в Excel</button>
+    </div>
+  </div>
 </template>
 
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import * as XLSX from 'xlsx'
 import axios from 'axios'
 import { useRoute } from 'vue-router'
 
 const route = useRoute()
 
-const fundingTypes = ['TechOrda', 'Скидка 30%', 'Скидка 70%', 'Внутренний грант']
-const coveragePercents = ['100%', '70%', '30%']
+const fundingTypes = ['TechOrda', 'Скидка 30%', 'Скидка 70%', 'Внутренний грант', 'Полная оплата']
 
 const selectedFundingType = ref('')
-const selectedCoverage = ref('')
 const showFundingType = ref(false)
-const showCoveragePercent = ref(false)
 
 const students = ref([])
 
 onMounted(async () => {
   try {
     const res = await axios.get('/api/students')
+    document.addEventListener('click', handleClickOutside)
     students.value = res.data.map(s => {
       const total = s.total_cost || 0
 
@@ -219,6 +154,9 @@ onMounted(async () => {
       } else if (s.funding_source === 'Скидка 30%') {
         percentNumber = 30
         percentLabel = '30%'
+      } else if (s.funding_source === 'Полная оплата') {
+        percentNumber = 0
+        percentLabel = '-' // или '0%' если хочешь отображать
       }
 
       // Расчёты
@@ -243,7 +181,9 @@ onMounted(async () => {
   }
 })
 
-
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
 
 
 const fundingOrder = {
@@ -257,8 +197,7 @@ const filteredStudents = computed(() => {
   return students.value
     .filter(s => {
       const matchType = !selectedFundingType.value || s.funding === selectedFundingType.value
-      const matchPercent = !selectedCoverage.value || s.percent === selectedCoverage.value
-      return matchType && matchPercent
+      return matchType
     })
     .sort((a, b) => {
       return (fundingOrder[a.funding] || 99) - (fundingOrder[b.funding] || 99)
@@ -271,20 +210,13 @@ function toggleFundingType() {
   showCoveragePercent.value = false
 }
 
-function toggleCoveragePercent() {
-  showCoveragePercent.value = !showCoveragePercent.value
-  showFundingType.value = false
-}
+
 
 function selectFundingType(option) {
   selectedFundingType.value = option
   showFundingType.value = false
 }
 
-function selectCoverage(option) {
-  selectedCoverage.value = option
-  showCoveragePercent.value = false
-}
 
 const fundingSummary = computed(() => {
   const groups = {}
@@ -318,6 +250,39 @@ const fundingSummary = computed(() => {
   })
 })
 
+function handleClickOutside(e) {
+  const target = e.target
+
+  const fundingDropdown = document.querySelector('.funding-dropdown')
+  const fundingBtn = document.querySelector('.funding-btn')
+
+  const percentDropdown = document.querySelector('.coverage-dropdown')
+  const percentBtn = document.querySelector('.coverage-btn')
+
+  if (
+    showFundingType.value &&
+    !fundingDropdown?.contains(target) &&
+    !fundingBtn?.contains(target)
+  ) {
+    showFundingType.value = false
+  }
+
+  if (
+    showCoveragePercent.value &&
+    !percentDropdown?.contains(target) &&
+    !percentBtn?.contains(target)
+  ) {
+    showCoveragePercent.value = false
+  }
+}
+
+function clearFilters() {
+  selectedFundingType.value = ''
+  showFundingType.value = false
+}
+
+
+
 const fundingTotal = computed(() => {
   let count = 0
   let covered = 0
@@ -341,7 +306,6 @@ function downloadExcel() {
     filteredStudents.value.map(s => ({
       Студент: s.name,
       'Тип финансирования': s.funding,
-      'Процент покрытия': s.percent,
       'Стоимость обучения': s.total,
       'Сумма покрытия': s.covered,
       'К оплате': s.pay
@@ -357,11 +321,12 @@ function downloadExcel() {
 <style scoped>
 .filter-select {
   background: #ffffff;
-  color: #836eff;
+  color: #6252FE;
   border-radius: 8px;
   padding: 8px 12px;
   font-size: 14px;
 }
+
 .download-btn {
   background-color: #6252FE;
   color: white;
@@ -382,6 +347,7 @@ function downloadExcel() {
   text-decoration: none;
   display: inline-block;
 }
+
 .tab-button-active {
   background: #6252FE;
   color: #FFFFFF;
@@ -392,7 +358,7 @@ function downloadExcel() {
 }
 
 .filters-wrapper {
-background-color: #F1EFFF;
+  background-color: #F1EFFF;
   border-radius: 12px;
   padding: 9px;
   margin-bottom: 16px;

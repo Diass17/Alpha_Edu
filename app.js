@@ -9,6 +9,7 @@ const swaggerJsdoc = require('swagger-jsdoc');
 const authRoutes = require('./routes/auth');
 const studentRoutes = require('./routes/students');
 const reportsRoutes = require('./routes/reports');
+const studentPaymentsRoute = require('./routes/studentPayments')
 
 dotenv.config();
 const app = express();
@@ -42,6 +43,7 @@ const streamStudentRoutes = require('./routes/stream_students')
 app.use('/api/stream-students', streamStudentRoutes);
 
 app.use('/reports', reportsRoutes);
+app.use('/api/student-payments', studentPaymentsRoute)
 
 
 // Swagger

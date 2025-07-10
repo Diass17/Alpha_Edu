@@ -1,242 +1,277 @@
+<!-- src/views/StudentForm.vue -->
 <template>
-  <div class="min-h-screen bg-gray-100 py-8">
-    <div class="max-w-3xl mx-auto px-4">
-      <h2 class="mb-6 text-3xl font-semibold">Добавить студента</h2>
+  <div class="min-h-screen bg-white flex">
+    <!-- Sidebar placeholder (real sidebar lives in Layout.vue) -->
+    <div class="w-20"></div>
 
-      <el-form :model="form" :rules="rules" ref="formRef" label-width="0"
-        class="space-y-6 bg-white p-6 rounded-lg shadow">
-        <!-- Личные данные -->
+    <!-- Main area -->
+    <div class="flex-1 p-8">
+      <!-- Title -->
+      <h1 class="text-3xl font-bold mb-6">Добавить студента</h1>
+
+      <!-- Form -->
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="0" class="space-y-4">
+        <!-- Upper text fields с валидацией -->
         <el-form-item prop="surname">
-          <el-input v-model="form.surname" placeholder="Фамилия" size="large" class="input-purple" />
+          <el-input v-model="form.surname" placeholder="Фамилия" size="large" clearable
+            class="w-full bg-purple-50 placeholder-purple-300 rounded-xl text-lg" />
         </el-form-item>
 
         <el-form-item prop="firstName">
-          <el-input v-model="form.firstName" placeholder="Имя" size="large" class="input-purple" />
+          <el-input v-model="form.firstName" placeholder="Имя" size="large" clearable
+            class="w-full bg-purple-50 placeholder-purple-300 rounded-xl text-lg" />
         </el-form-item>
 
         <el-form-item prop="patronymic">
-          <el-input v-model="form.patronymic" placeholder="Отчество" size="large" class="input-purple" />
+          <el-input v-model="form.patronymic" placeholder="Отчество" size="large" clearable
+            class="w-full bg-purple-50 placeholder-purple-300 rounded-xl text-lg" />
         </el-form-item>
 
-        <!-- Контактные данные -->
         <el-form-item prop="iin">
-          <el-input v-model="form.iin" placeholder="ИИН" size="large" class="input-purple" />
+          <el-input v-model="form.iin" placeholder="010101345678" size="large" clearable
+            class="w-full bg-purple-50 placeholder-purple-300 rounded-xl text-lg" />
         </el-form-item>
 
         <el-form-item prop="email">
-          <el-input v-model="form.email" placeholder="Email" size="large" class="input-purple" />
+          <el-input v-model="form.email" placeholder="ivanovivan@gmail.com" size="large" clearable
+            class="w-full bg-purple-50 placeholder-purple-300 rounded-xl text-lg" />
         </el-form-item>
 
         <el-form-item prop="phone">
-          <el-input v-model="form.phone" placeholder="+77021524049" maxlength="12" size="large" class="input-purple" />
+          <el-input v-model="form.phone" placeholder="+77005677889" size="large" clearable
+            class="w-full bg-purple-50 placeholder-purple-300 rounded-xl text-lg" />
         </el-form-item>
 
-        <!-- Статус и Top Student -->
-        <div class="flex gap-4">
-          <el-select v-model="form.status" placeholder="Статус" size="large" class="flex-1 input-purple">
-            <el-option label="Студент" value="Студент" />
-            <el-option label="Выпускник" value="Выпускник" />
-          </el-select>
+        <!-- Grouped selects -->
+        <div class="mt-6 space-y-4">
+          <!-- Course -->
+          <el-form-item prop="subject">
+            <el-select v-model="form.subject" placeholder="Курс" size="large" clearable
+              class="w-full bg-purple-50 rounded-xl text-lg">
+              <el-option v-for="course in courses" :key="course.id" :label="course.name" :value="course.name" />
+            </el-select>
+          </el-form-item>
 
-          <div class="flex items-center">
-            <span class="mr-2 text-lg text-gray-700">Top Student</span>
-            <el-checkbox v-model="form.topStudent" />
+          <!-- Status + Top Student -->
+          <div class="flex space-x-4">
+            <el-form-item prop="status" class="flex-1">
+              <el-select v-model="form.status" placeholder="Статус" size="large" clearable
+                class="w-full bg-purple-50 rounded-xl text-lg">
+                <el-option label="Студент" value="student" />
+                <el-option label="Выпускник" value="graduate" />
+              </el-select>
+            </el-form-item>
+
+            <div class="flex items-center bg-purple-50 rounded-xl px-4" style="height:3.5rem">
+              <span class="text-lg text-gray-700 mr-2">Top Student</span>
+              <el-checkbox v-model="form.topStudent" />
+            </div>
           </div>
-        </div>
 
-        <!-- Финансирование -->
-        <el-select v-model="form.financing" placeholder="Финансирование" size="large" class="w-full input-purple">
-          <el-option label="TechOrda" value="TechOrda" />
-          <el-option label="Скидка 70%" value="Скидка 70%" />
-          <el-option label="Скидка 30%" value="Скидка 30%" />
-          <el-option label="Внутренний грант" value="Внутренний грант" />
-        </el-select>
-
-
-        <!-- Предмет -->
-        <!-- Предмет -->
-        <el-form-item prop="subject">
-          <el-select v-model="form.subject" placeholder="Выберите предмет" size="large" class="w-full input-purple">
-            <el-option v-for="course in courseOptions" :key="course.id" :label="course.name" :value="course.name" />
-          </el-select>
-        </el-form-item>
-
-
-
-        <!-- Финансовые данные -->
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block mb-1 text-lg text-gray-700">Оплата за курс</label>
-            <el-input-number v-model="coursePrice" :min="0" :step="1000" controls-position="right" size="large"
-              class="w-full" />
-          </div>
-          <div>
-            <label class="block mb-1 text-lg text-gray-700">Сумма оплачено</label>
-            <el-input-number v-model="amountPaid" :min="0" :max="discountedPrice" :step="1000" controls-position="right"
-              size="large" class="w-full" />
-          </div>
-        </div>
-
-        <!-- Подсчёты -->
-        <div class="rounded-lg border border-purple-200 bg-purple-50 overflow-hidden">
-          <table class="w-full divide-y divide-purple-200">
-            <thead class="bg-purple-100">
-              <tr>
-                <th class="px-6 py-3 text-left text-lg text-purple-700">Показатель</th>
-                <th class="px-6 py-3 text-right text-lg text-purple-700">Сумма</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td class="px-6 py-4">Оплата за курс</td>
-                <td class="px-6 py-4 text-right">{{ formatTenge(coursePrice) }}</td>
-              </tr>
-              <tr>
-                <td class="px-6 py-4">Сумма со скидкой 30%</td>
-                <td class="px-6 py-4 text-right">{{ formatTenge(discountedPrice) }}</td>
-              </tr>
-              <tr>
-                <td class="px-6 py-4">Сумма оплачено</td>
-                <td class="px-6 py-4 text-right">{{ formatTenge(amountPaid) }}</td>
-              </tr>
-              <tr>
-                <td class="px-6 py-4">Сумма к оплате</td>
-                <td class="px-6 py-4 text-right">{{ formatTenge(amountDue) }}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Сохранить -->
-        <div class="mt-6 flex justify-end">
-          <el-button type="primary" size="large" @click="submitForm" class="rounded-lg">Сохранить</el-button>
+          <!-- Financing + Add Course -->
+          <el-form-item prop="financing">
+            <div class="flex items-center space-x-4">
+              <el-select v-model="form.financing" placeholder="Финансирование" size="large" clearable
+                class="flex-1 bg-purple-50 rounded-xl text-lg">
+                <el-option label="Полная оплата" value="Полная оплата" />
+                <el-option label="TechOrda" value="TechOrda" />
+                <el-option label="Скидка 30%" value="Скидка 30%" />
+                <el-option label="Скидка 70%" value="Скидка 70%" />
+                <el-option label="Внутренний грант" value="Внутренний грант" />
+              </el-select>
+              <el-button type="primary" icon="Plus" size="large"
+                class="bg-purple-600 hover:bg-purple-700 rounded-xl text-white" @click="addCourse">
+                Добавить курс
+              </el-button>
+            </div>
+          </el-form-item>
         </div>
       </el-form>
+
+
+      <!-- Payments summary table -->
+      <div class="mt-6 rounded-xl border border-purple-200 overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-purple-50">
+            <tr>
+              <th class="py-3 px-6 text-left text-lg text-gray-800">
+                Оплата за курс
+              </th>
+              <th class="py-3 px-6 text-right text-lg text-gray-800">
+                {{ form.coursePrice }} ₸
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr class="border-t">
+              <td class="py-3 px-6 text-left text-lg text-gray-800">Сумма со скидкой</td>
+              <td class="py-3 px-6 text-right text-lg text-gray-800">{{ discountedPrice }} ₸</td>
+            </tr>
+
+            <tr class="border-t">
+              <td class="py-3 px-6 text-left text-lg text-gray-800">Выбор период оплаты</td>
+              <td class="py-3 px-6 text-right text-lg text-gray-800">
+                <el-select v-model="form.paymentPeriod" placeholder="Выбрать" clearable
+                  class="w-40 bg-white rounded-lg text-lg">
+                  <el-option label="Полная сумма" value="full" />
+                  <el-option label="2 месяца" value="2" />
+                  <el-option label="3 месяца" value="3" />
+                  <el-option label="6 месяцев" value="6" />
+                  <el-option label="12 месяцев" value="12" />
+                </el-select>
+              </td>
+            </tr>
+
+            <tr class="border-t">
+              <td class="py-3 px-6 text-left text-lg text-gray-800">Сумма оплачено</td>
+              <td class="py-3 px-6 text-right text-lg text-gray-800">{{ form.amountPaid }} ₸</td>
+            </tr>
+
+            <tr class="border-t">
+              <td class="py-3 px-6 text-left text-lg text-gray-800">Сумма к оплате</td>
+              <td class="py-3 px-6 text-right text-lg text-gray-800">{{ amountRemaining }} ₸</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+
+      <!-- Save button -->
+      <div class="flex justify-end mt-6">
+        <el-button type="primary" size="large" class="bg-purple-600 hover:bg-purple-700 rounded-xl text-white"
+          @click="confirmSave">
+          Сохранить профиль
+        </el-button>
+      </div>
+
+      <!-- Success popup -->
+      <el-dialog v-model="showSuccess" width="320px" show-close="false" center custom-class="success-dialog">
+        <div class="text-center p-6">
+          <el-icon class="text-green-500 text-4xl mb-2">
+            <SuccessFilled />
+          </el-icon>
+          <h3 class="text-xl font-semibold mb-2">Готово!</h3>
+          <p class="text-gray-700 mb-6">
+            Аккаунт студента успешно сохранён
+          </p>
+          <el-button type="primary" size="small" @click="onSuccessContinue">
+            Далее
+          </el-button>
+        </div>
+      </el-dialog>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { onMounted } from 'vue'
-import { reactive, ref, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import type { FormInstance, FormRules } from 'element-plus'
+import { Plus, SuccessFilled } from '@element-plus/icons-vue'
 import { useStudentStore } from '@/store/studentStore'
 
-const courseOptions = ref<{ id: number; name: string }[]>([])
 const studentStore = useStudentStore()
+const courses = ref<{ id: number; name: string }[]>([])
 
-const formRef = ref<FormInstance | null>(null)
+onMounted(async () => {
+  const res = await fetch('/api/students/courses')
+  courses.value = await res.json()
+})
 
-// Используем reactive для формы
-const form = reactive({
+const discountedPrice = computed(() => {
+  const price = form.value.coursePrice
+  switch (form.value.financing) {
+    case 'TechOrda':
+    case 'Внутренний грант':
+      return 0
+    case 'Скидка 30%':
+      return Math.round(price * 0.7)
+    case 'Скидка 70%':
+      return Math.round(price * 0.3)
+    case 'Полная оплата':
+    default:
+      return price
+  }
+})
+
+
+
+const amountRemaining = computed(() =>
+  Math.max(discountedPrice.value - form.value.amountPaid, 0)
+)
+
+
+interface StudentForm {
+  surname: string
+  firstName: string
+  patronymic: string
+  iin: string
+  email: string
+  phone: string
+  course: string
+  status: string
+  topStudent: boolean
+  financing: string
+  paymentPeriod: string
+}
+
+const router = useRouter()
+const formRef = ref()
+const form = ref({
   surname: '',
   firstName: '',
   patronymic: '',
   iin: '',
   email: '',
   phone: '',
+  course: '',
   status: '',
   topStudent: false,
   financing: '',
-  subject: ''
+  paymentPeriod: '',
+  subject: '',
+  coursePrice: 0,
+  amountPaid: 0,
 })
 
-// Валидация
-const rules = reactive<FormRules>({
-  surname: [{ required: true, message: 'Введите фамилию', trigger: 'blur' }],
-  firstName: [{ required: true, message: 'Введите имя', trigger: 'blur' }],
-  patronymic: [], // НЕ обязательное поле
-
+const rules = {
+  surname: [
+    { required: true, message: 'Фамилия обязательна', trigger: 'blur' },
+    { pattern: /^[А-Яа-яA-Za-z\-]{2,}$/, message: 'Только буквы, минимум 2 символа', trigger: 'blur' }
+  ],
+  firstName: [
+    { required: true, message: 'Имя обязательно', trigger: 'blur' },
+    { min: 2, message: 'Минимум 2 буквы', trigger: 'blur' }
+  ],
   iin: [
-    { required: true, message: 'Введите ИИН', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        if (!value) {
-          callback(new Error('Введите ИИН'));
-        } else if (!/^\d{12}$/.test(value)) {
-          callback(new Error('ИИН должен содержать ровно 12 цифр'));
-        } else {
-          callback();
-        }
-      },
-      trigger: 'blur'
-    }
+    { required: true, message: 'ИИН обязателен', trigger: 'blur' },
+    { pattern: /^\d{12}$/, message: 'ИИН должен содержать 12 цифр', trigger: 'blur' }
+  ],
+  email: [
+    { required: true, message: 'Email обязателен', trigger: 'blur' },
+    { type: 'email', message: 'Неверный формат email', trigger: ['blur', 'change'] }
   ],
   phone: [
-    { required: true, message: 'Введите номер телефона', trigger: 'blur' },
-    {
-      validator: (rule, value, callback) => {
-        const phoneRegex = /^\+\d{11}$/;
-        if (!value) {
-          callback(new Error('Введите номер телефона'));
-        } else if (!value.startsWith('+')) {
-          callback(new Error('Номер должен начинаться с "+"'));
-        } else if (!phoneRegex.test(value)) {
-          callback(new Error('Формат: + и 11 цифр, всего 12 символов'));
-        } else {
-          callback();
-        }
-      },
-      trigger: 'blur'
-    }
+    { required: true, message: 'Телефон обязателен', trigger: 'blur' },
+    { pattern: /^\+7\d{10}$/, message: 'Номер должен быть в формате: +7XXXXXXXXXX', trigger: 'blur' }
   ],
-
-  email: [
-    { required: true, message: 'Введите email', trigger: 'blur' },
-    {
-      type: 'email',
-      message: 'Введите корректный email',
-      trigger: ['blur', 'change']
-    }
+  subject: [
+    { required: true, message: 'Выберите курс', trigger: 'change' }
   ],
-
-  subject: [{ required: true, message: 'Введите предмет', trigger: 'blur' }],
-});
-
-onMounted(async () => {
-  try {
-    const res = await fetch('/api/students/courses') // путь к новому маршруту
-    const data = await res.json()
-    courseOptions.value = data
-  } catch (err) {
-    console.error('Ошибка загрузки курсов:', err)
-  }
-})
-
-
-// Финансовые поля
-const coursePrice = ref(0)
-const amountPaid = ref(0)
-
-const discountedPrice = computed(() => {
-  if (form.financing === 'TechOrda' || form.financing === 'Внутренний грант') {
-    return 0
-  } else if (form.financing === 'Скидка 70%') {
-    return Math.floor(coursePrice.value * 0.3)
-  } else if (form.financing === 'Скидка 30%') {
-    return Math.floor(coursePrice.value * 0.7)
-  } else {
-    return coursePrice.value
-  }
-})
-
-
-const amountDue = computed(() => {
-  return Math.max(discountedPrice.value - amountPaid.value, 0)
-})
-
-function formatTenge(amount: number) {
-  return new Intl.NumberFormat('ru-RU', {
-    style: 'currency',
-    currency: 'KZT',
-    maximumFractionDigits: 0,
-  }).format(amount)
 }
 
-const submitForm = async () => {
-  if (!formRef.value) return
 
+
+
+
+// Control success dialog
+const showSuccess = ref(false)
+
+function addCourse() {
+  ElMessage.success('Курс добавлен')
+}
+
+async function confirmSave() {
   await formRef.value.validate(async (valid: boolean) => {
     if (!valid) {
       ElMessage.error('Пожалуйста, заполните все обязательные поля')
@@ -244,63 +279,79 @@ const submitForm = async () => {
     }
 
     try {
-      const newStudent = {
-        full_name: `${form.surname} ${form.firstName} ${form.patronymic}`,
-        name: `${form.firstName} ${form.patronymic}`,
-        iin: form.iin,
-        email: form.email,
-        phone: form.phone,
-        status: form.status,
-        top_student: form.topStudent,
-        funding_source: form.financing,
-        subject: form.subject,
-        total_cost: coursePrice.value,
-        discount_percent: form.financing === 'Скидка 30%' ? 30
-          : form.financing === 'Скидка 70%' ? 70
-            : (form.financing === 'TechOrda' || form.financing === 'Внутренний грант') ? 100
-              : 0,
-        paid_amount: amountPaid.value,
-        amount_remaining: Math.max(discountedPrice.value - amountPaid.value, 0),
-      }
-
-      await studentStore.createStudent(newStudent)
-      ElMessage.success('Студент успешно добавлен')
-
-      // Очистка
-      Object.assign(form, {
-        surname: '',
-        firstName: '',
-        patronymic: '',
-        iin: '',
-        email: '',
-        phone: '',
-        status: '',
-        topStudent: false,
-        financing: '',
-        subject: ''
+      await studentStore.createStudent({
+        full_name: `${form.value.surname} ${form.value.firstName} ${form.value.patronymic}`.trim(),
+        iin: form.value.iin,
+        email: form.value.email,
+        phone: form.value.phone,
+        status: form.value.status,
+        top_student: form.value.topStudent,
+        funding_source: form.value.financing,
+        subject: form.value.subject,
+        total_cost: form.value.coursePrice,
+        discount_percent: getDiscountPercent(form.value.financing),
+        paid_amount: form.value.amountPaid,
+        amount_remaining: amountRemaining.value,
+        paymentPeriod: parseInt(form.value.paymentPeriod || '4'),
       })
-      coursePrice.value = 0
-      amountPaid.value = 0
-    } catch (error) {
+
+      ElMessage.success('Студент успешно добавлен')
+      showSuccess.value = true
+      resetForm()
+    } catch (err) {
       ElMessage.error('Ошибка при добавлении студента')
-      console.error(error)
     }
   })
 }
-</script>
 
-
-
-
-<style scoped>
-.input-purple .el-input__inner {
-  background-color: #faf5ff;
-  border-color: #e9d8fd;
-  border-radius: 0.5rem;
-  font-size: 1.125rem;
+function getDiscountPercent(type: string): number {
+  switch (type) {
+    case 'Скидка 30%':
+      return 30
+    case 'Скидка 70%':
+      return 70
+    case 'TechOrda':
+    case 'Внутренний грант':
+      return 100
+    case 'Полная оплата':
+    default:
+      return 0
+  }
 }
 
-.input-purple .el-input__inner::placeholder {
-  color: #c4b5fd;
+
+
+function resetForm() {
+  form.value = {
+    surname: '',
+    firstName: '',
+    patronymic: '',
+    iin: '',
+    email: '',
+    phone: '',
+    course: '',
+    status: '',
+    topStudent: false,
+    financing: '',
+    paymentPeriod: '',
+    subject: '',
+    coursePrice: 0,
+    amountPaid: 0,
+  }
+}
+
+
+
+
+
+function onSuccessContinue() {
+  showSuccess.value = false
+  router.push({ name: 'Students' })
+}
+</script>
+
+<style scoped>
+.success-dialog .el-dialog__body {
+  padding: 0;
 }
 </style>

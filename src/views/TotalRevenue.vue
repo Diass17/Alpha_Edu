@@ -49,7 +49,7 @@
         </button>
 
         <div v-if="showCourseDropdown"
-          class="absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+           class="course-dropdown absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           <input type="text" v-model="searchCourse" placeholder="Поиск курса"
             class="w-full px-3 py-2 text-sm border-b outline-none" />
           <ul>
@@ -65,21 +65,29 @@
       <!-- Тип финансирования -->
       <div class="relative w-48">
         <button @click="toggleFundingType" class="filter-select w-full flex justify-between items-center" type="button">
-          {{ selectedFundingType || 'Тип финансирования' }}
+          {{ selectedFundingTypes.length ? selectedFundingTypes.join(', ') : 'Тип финансирования' }}
           <svg
             :class="['w-4 h-4 ml-2 transform transition-transform duration-200', showFundingType ? 'rotate-180' : '']"
             fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        <ul v-if="showFundingType" class="absolute z-10 w-full mt-2 bg-white border rounded-lg shadow-md">
+        <ul v-if="showFundingType" class="funding-dropdown absolute z-10 w-full mt-2 bg-white border rounded-lg shadow-md">
           <li v-for="option in fundingTypes" :key="option" @click="selectFundingType(option)"
-            class="cursor-pointer px-4 py-2 hover:bg-gray-100"
-            :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFundingType === option }">
-            {{ option }}
+            class="cursor-pointer px-4 py-2 hover:bg-gray-100 flex justify-between items-center">
+            <span :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFundingTypes.includes(option) }">
+              {{ option }}
+            </span>
+            <span v-if="selectedFundingTypes.includes(option)" class="text-[rgb(98,82,254)]">✔</span>
           </li>
         </ul>
       </div>
+      <div class="relative">
+      <button @click="clearAllFilters"
+        class="filter-select w-full flex justify-between items-center">
+        Очистить фильтры
+      </button>
+    </div>
     </div>
 
     <!-- Таблица -->
@@ -124,40 +132,97 @@
   </div>
 </template>
 
-<script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+<script setup lang="ts">
+import { ref, computed, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import axios from 'axios'
 import Datepicker from 'vue3-datepicker'
 import * as XLSX from 'xlsx'
 
+// Типы данных
+interface Student {
+  id: number
+  full_name: string
+  paid_amount: number
+  funding_source: string
+  subject: string
+  course_id?: number
+  created_at?: string
+}
+
+interface Course {
+  id: number
+  name: string
+}
+
+interface RowData {
+  date: string
+  amount: string
+  course: string
+  student: string
+  payment: string
+}
+
+// Переменные
 const route = useRoute()
-const startDate = ref(null)
-const endDate = ref(null)
+
+const selectedFundingTypes = ref < string[] > ([])
+const startDate = ref < Date | undefined > (undefined)
+const endDate = ref < Date | undefined > (undefined)
+
 const showStartPicker = ref(false)
 const showEndPicker = ref(false)
-const startPickerRef = ref(null)
-const endPickerRef = ref(null)
-const popupPosition = ref({ start: '', end: '' })
+const startPickerRef = ref < HTMLElement | null > (null)
+const endPickerRef = ref < HTMLElement | null > (null)
+
+const popupPosition = ref < { start: string; end: string } > ({ start: '', end: '' })
+
 const showCourseDropdown = ref(false)
-const selectedCourse = ref('')
-const searchCourse = ref('')
-const rows = ref([])
+const selectedCourse = ref < string > ('')
+const searchCourse = ref < string > ('')
 
+const rows = ref < RowData[] > ([])
 
-const filteredCourses = computed(() => {
-  const courseSet = new Set(rows.value.map(r => r.course))
-  return Array.from(courseSet).filter(course => course.toLowerCase().includes(searchCourse.value.toLowerCase()))
-})
+// Курсы, отфильтрованные по поиску
+const filteredCourses = computed(() =>
+  Array.from(new Set(rows.value.map(r => r.course))).filter(course =>
+    course.toLowerCase().includes(searchCourse.value.toLowerCase())
+  )
+)
 
-function toggleCourseDropdown() { showCourseDropdown.value = !showCourseDropdown.value }
-function selectCourse(course) { selectedCourse.value = course; showCourseDropdown.value = false }
-function formatDate(date) { return new Date(date).toLocaleDateString('ru-RU') }
-function toggleStartPicker(e) { showStartPicker.value = !showStartPicker.value; if (showStartPicker.value) popupPosition.value.start = `position: absolute; top: ${e.target.getBoundingClientRect().bottom + window.scrollY + 5}px; left: ${e.target.getBoundingClientRect().left}px; z-index: 9999;` }
-function toggleEndPicker(e) { showEndPicker.value = !showEndPicker.value; if (showEndPicker.value) popupPosition.value.end = `position: absolute; top: ${e.target.getBoundingClientRect().bottom + window.scrollY + 5}px; left: ${e.target.getBoundingClientRect().left}px; z-index: 9999;` }
-function closeStartPicker() { showStartPicker.value = false }
-function closeEndPicker() { showEndPicker.value = false }
+// Функции UI
+function toggleCourseDropdown() {
+  showCourseDropdown.value = !showCourseDropdown.value
+}
+function selectCourse(course: string) {
+  selectedCourse.value = course
+  showCourseDropdown.value = false
+}
+function formatDate(date: Date) {
+  return date.toLocaleDateString('ru-RU')
+}
+function toggleStartPicker(e: MouseEvent) {
+  showStartPicker.value = !showStartPicker.value
+  if (showStartPicker.value) {
+    const rect = (e.target as HTMLElement).getBoundingClientRect()
+    popupPosition.value.start = `position: absolute; top: ${rect.bottom + window.scrollY + 5}px; left: ${rect.left}px; z-index: 9999;`
+  }
+}
+function toggleEndPicker(e: MouseEvent) {
+  showEndPicker.value = !showEndPicker.value
+  if (showEndPicker.value) {
+    const rect = (e.target as HTMLElement).getBoundingClientRect()
+    popupPosition.value.end = `position: absolute; top: ${rect.bottom + window.scrollY + 5}px; left: ${rect.left}px; z-index: 9999;`
+  }
+}
+function closeStartPicker() {
+  showStartPicker.value = false
+}
+function closeEndPicker() {
+  showEndPicker.value = false
+}
 
+// Загрузка данных
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
   fetchStudentPaymentsLikeOldVersion()
@@ -166,16 +231,19 @@ onMounted(() => {
 async function fetchStudentPaymentsLikeOldVersion() {
   try {
     const [studentsRes, coursesRes] = await Promise.all([
-      axios.get('/api/students'),
-      axios.get('/api/courses')
+      axios.get < Student[] > ('/api/students'),
+      axios.get < Course[] > ('/api/courses')
     ])
 
     const courses = coursesRes.data
 
-    rows.value = studentsRes.data.map((student) => {
-      const courseObj = courses.find(c => c.id === student.course_id || c.name === student.subject)
+    rows.value = studentsRes.data.map((student: Student): RowData => {
+      const courseObj = courses.find(
+        c => c.id === student.course_id || c.name === student.subject
+      )
+
       return {
-        date: new Date().toLocaleDateString('ru-RU'), // если есть created_at, подставь сюда
+        date: new Date().toLocaleDateString('ru-RU'), // Заменить на student.created_at при наличии
         amount: (student.paid_amount || 0).toLocaleString('ru-RU'),
         course: courseObj?.name || student.subject || '–––',
         student: student.full_name || '',
@@ -187,25 +255,75 @@ async function fetchStudentPaymentsLikeOldVersion() {
   }
 }
 
-function handleClickOutside(e) {
-  if (!startPickerRef.value?.contains(e.target) && !e.target.closest('.start-picker-btn')) showStartPicker.value = false
-  if (!endPickerRef.value?.contains(e.target) && !e.target.closest('.end-picker-btn')) showEndPicker.value = false
+// Обработка клика вне элементов
+function handleClickOutside(e: MouseEvent) {
+  const target = e.target as HTMLElement
+
+  // Календарь "Начало"
+  if (!startPickerRef.value?.contains(target) && !target.closest('.start-picker-btn')) {
+    showStartPicker.value = false
+  }
+
+  // Календарь "Конец"
+  if (!endPickerRef.value?.contains(target) && !target.closest('.end-picker-btn')) {
+    showEndPicker.value = false
+  }
+
+  // Выпадающий список курсов
+  const courseDropdown = document.querySelector('.course-dropdown')
+  if (showCourseDropdown.value && courseDropdown && !courseDropdown.contains(target) && !target.closest('.filter-select')) {
+    showCourseDropdown.value = false
+  }
+
+  // Выпадающий список типов финансирования
+  const fundingDropdown = document.querySelector('.funding-dropdown')
+  if (showFundingType.value && fundingDropdown && !fundingDropdown.contains(target) && !target.closest('.filter-select')) {
+    showFundingType.value = false
+  }
 }
 
-const formattedPeriod = computed(() => (startDate.value && endDate.value) ? `${formatDate(startDate.value)} - ${formatDate(endDate.value)}` : 'не выбран')
+// Период
+const formattedPeriod = computed(() =>
+  startDate.value && endDate.value
+    ? `${formatDate(startDate.value)} - ${formatDate(endDate.value)}`
+    : 'не выбран'
+)
 
+// Фильтрация
 const filteredRows = computed(() => {
+  const endPlusOne = endDate.value
+    ? new Date(endDate.value.getFullYear(), endDate.value.getMonth(), endDate.value.getDate() + 1)
+    : null
+
   return rows.value.filter(row => {
     const date = new Date(row.date.split('.').reverse().join('-'))
-    const inRange = (!startDate.value || date >= startDate.value) && (!endDate.value || date <= endDate.value)
+
+    const inRange =
+      (!startDate.value || date >= startDate.value) &&
+      (!endPlusOne || date < endPlusOne)
+
     const courseMatch = !selectedCourse.value || row.course === selectedCourse.value
-    const fundingMatch = !selectedFundingType.value || row.payment === selectedFundingType.value
+    const fundingMatch =
+      selectedFundingTypes.value.length === 0 ||
+      selectedFundingTypes.value.includes(row.payment)
+
     return inRange && courseMatch && fundingMatch
   })
 })
 
-const totalAmount = computed(() => filteredRows.value.reduce((sum, row) => sum + parseInt(row.amount.replace(/[^\d]/g, '')) || 0, 0))
-const totalAmountDisplay = computed(() => totalAmount.value.toLocaleString('ru-RU'))
+// Общая сумма
+const totalAmount = computed(() =>
+  filteredRows.value.reduce((sum, row) => {
+    const num = parseInt(row.amount.replace(/[^\d]/g, ''), 10)
+    return sum + (isNaN(num) ? 0 : num)
+  }, 0)
+)
+
+const totalAmountDisplay = computed(() =>
+  totalAmount.value.toLocaleString('ru-RU')
+)
+
+// Excel
 function downloadExcel() {
   const worksheet = XLSX.utils.json_to_sheet(filteredRows.value)
   const workbook = XLSX.utils.book_new()
@@ -213,8 +331,8 @@ function downloadExcel() {
   XLSX.writeFile(workbook, 'Отчёт.xlsx')
 }
 
-const fundingTypes = ['TechOrda', 'Скидка 30%', 'Скидка 70%', 'Внутренний грант']
-const selectedFundingType = ref('')
+// Типы финансирования
+const fundingTypes = ['Полная оплата', 'TechOrda', 'Скидка 30%', 'Скидка 70%', 'Внутренний грант']
 const showFundingType = ref(false)
 
 function toggleFundingType() {
@@ -224,14 +342,26 @@ function toggleFundingType() {
   showEndPicker.value = false
 }
 
-function selectFundingType(option) {
-  selectedFundingType.value = option
-  showFundingType.value = false
+function selectFundingType(option: string) {
+  const index = selectedFundingTypes.value.indexOf(option)
+  if (index === -1) {
+    selectedFundingTypes.value.push(option)
+  } else {
+    selectedFundingTypes.value.splice(index, 1)
+  }
 }
 
-
-
+// Сброс фильтров
+function clearAllFilters() {
+  startDate.value = undefined
+  endDate.value = undefined
+  selectedCourse.value = ''
+  selectedFundingTypes.value = []
+  showCourseDropdown.value = false
+  showFundingType.value = false
+}
 </script>
+
 
 
 <!-- Styles-->
