@@ -10,7 +10,7 @@
       <h1 class="text-3xl font-bold mb-6">Добавить студента</h1>
 
       <!-- Form -->
-      <el-form ref="formRef" :model="form" :rules="rules" label-width="0" class="space-y-4">
+      <el-form ref="formRef" :model="form" :rules="rules" label-width="0" class="space-y-4 validate-on-rule-change">
         <!-- Upper text fields с валидацией -->
         <el-form-item prop="surname">
           <el-input v-model="form.surname" placeholder="Фамилия" size="large" clearable
@@ -72,13 +72,14 @@
           <el-form-item prop="financing">
             <el-select v-model="form.financing" placeholder="Финансирование" size="large" clearable
               class="w-full bg-purple-50 rounded-xl text-lg">
-              <el-option label="Полная оплата" value="Полная оплата" />
-              <el-option label="TechOrda" value="TechOrda" />
-              <el-option label="Скидка 30%" value="Скидка 30%" />
-              <el-option label="Скидка 70%" value="Скидка 70%" />
-              <el-option label="Внутренний грант" value="Внутренний грант" />
+              <el-option label="Полная оплата" value="full" />
+              <el-option label="TechOrda" value="techorda" />
+              <el-option label="Скидка 30%" value="discount_30" />
+              <el-option label="Скидка 70%" value="discount_70" />
+              <el-option label="Внутренний грант" value="internal_grant" />
             </el-select>
           </el-form-item>
+
 
           <!-- Кнопка "Добавить курс", отдельно под селектом и справа -->
           <div class="flex justify-end mb-4">
@@ -167,61 +168,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, SuccessFilled } from '@element-plus/icons-vue'
 import { useStudentStore } from '@/store/studentStore'
 
-const studentStore = useStudentStore()
-const courses = ref<{ id: number; name: string }[]>([])
-
-onMounted(async () => {
-  const res = await fetch('/api/students/courses')
-  courses.value = await res.json()
-})
-
-
-
-const discountedPrice = computed(() => {
-  const price = form.value.coursePrice
-  switch (form.value.financing) {
-    case 'TechOrda':
-    case 'Внутренний грант':
-      return 0
-    case 'Скидка 30%':
-      return Math.round(price * 0.7)
-    case 'Скидка 70%':
-      return Math.round(price * 0.3)
-    case 'Полная оплата':
-    default:
-      return price
-  }
-})
-
-
-
-const amountRemaining = computed(() =>
-  Math.max(discountedPrice.value - form.value.amountPaid, 0)
-)
-
-
-interface StudentForm {
-  surname: string
-  firstName: string
-  patronymic: string
-  iin: string
-  email: string
-  phone: string
-  course: string
-  status: string
-  topStudent: boolean
-  financing: string
-  paymentPeriod: string
-}
-
 const router = useRouter()
+const studentStore = useStudentStore()
+
 const formRef = ref()
+const showSuccess = ref(false)
+const courses = ref<{ id: number; name: string; price?: number }[]>([])
+
 const form = ref({
   surname: '',
   firstName: '',
@@ -229,7 +188,6 @@ const form = ref({
   iin: '',
   email: '',
   phone: '',
-  course: '',
   status: '',
   topStudent: false,
   financing: '',
@@ -241,36 +199,90 @@ const form = ref({
 
 const rules = {
   surname: [
-    { required: true, message: 'Фамилия обязательна', trigger: 'blur' },
-    { pattern: /^[А-Яа-яA-Za-z\-]{2,}$/, message: 'Только буквы, минимум 2 символа', trigger: 'blur' }
+    { required: true, message: 'Фамилия обязательна', trigger: ['blur', 'change'] },
+    { pattern: /^[А-Яа-яA-Za-z\-]{2,}$/, message: 'Только буквы, минимум 2 символа', trigger: ['blur', 'change'] }
   ],
   firstName: [
-    { required: true, message: 'Имя обязательно', trigger: 'blur' },
-    { min: 2, message: 'Минимум 2 буквы', trigger: 'blur' }
+    { required: true, message: 'Имя обязательно', trigger: ['blur', 'change'] },
+    { min: 2, message: 'Минимум 2 буквы', trigger: ['blur', 'change'] }
   ],
   iin: [
-    { required: true, message: 'ИИН обязателен', trigger: 'blur' },
-    { pattern: /^\d{12}$/, message: 'ИИН должен содержать 12 цифр', trigger: 'blur' }
+    { required: true, message: 'ИИН обязателен', trigger: ['blur', 'change'] },
+    { pattern: /^\d{12}$/, message: 'ИИН должен содержать 12 цифр', trigger: ['blur', 'change'] }
   ],
   email: [
-    { required: true, message: 'Email обязателен', trigger: 'blur' },
+    { required: true, message: 'Email обязателен', trigger: ['blur', 'change'] },
     { type: 'email', message: 'Неверный формат email', trigger: ['blur', 'change'] }
   ],
   phone: [
-    { required: true, message: 'Телефон обязателен', trigger: 'blur' },
-    { pattern: /^\+7\d{10}$/, message: 'Номер должен быть в формате: +7XXXXXXXXXX', trigger: 'blur' }
+    { required: true, message: 'Телефон обязателен', trigger: ['blur', 'change'] },
+    { pattern: /^\+7\d{10}$/, message: 'Номер должен быть в формате: +7XXXXXXXXXX', trigger: ['blur', 'change'] }
   ],
   subject: [
-    { required: true, message: 'Выберите курс', trigger: 'change' }
+    { required: true, message: 'Выберите курс', trigger: ['blur', 'change'] }
   ],
+  financing: [
+    { required: true, message: 'Выберите тип финансирования', trigger: ['blur', 'change'] }
+  ],
+  status: [
+    { required: true, message: 'Выберите статус', trigger: ['blur', 'change'] }
+  ]
 }
 
 
 
+onMounted(async () => {
+  try {
+    const res = await fetch('/api/students/courses')
+    courses.value = await res.json()
+  } catch (err) {
+    ElMessage.error('Ошибка при загрузке курсов')
+  }
+})
+
+// Автозаполнение цены курса при выборе
+watch(() => form.value.subject, (selected) => {
+  const selectedCourse = courses.value.find(c => c.name === selected)
+  form.value.coursePrice = selectedCourse?.price || 0 // по умолчанию 0
+})
+
+const discountedPrice = computed(() => {
+  const price = form.value.coursePrice
+  switch (form.value.financing) {
+    case 'techorda':
+    case 'internal_grant':
+      return 0
+    case 'discount_30':
+      return Math.round(price * 0.7)
+    case 'discount_70':
+      return Math.round(price * 0.3)
+    case 'full':
+    default:
+      return price
+  }
+})
+
+const amountRemaining = computed(() =>
+  Math.max(discountedPrice.value - form.value.amountPaid, 0)
+)
 
 
-// Control success dialog
-const showSuccess = ref(false)
+
+
+function getDiscountPercent(type: string): number {
+  switch (type) {
+    case 'discount_30':
+      return 30
+    case 'discount_70':
+      return 70
+    case 'techorda':
+    case 'internal_grant':
+      return 100
+    default:
+      return 0
+  }
+}
+
 
 function addCourse() {
   ElMessage.success('Курс добавлен')
@@ -297,34 +309,18 @@ async function confirmSave() {
         discount_percent: getDiscountPercent(form.value.financing),
         paid_amount: form.value.amountPaid,
         amount_remaining: amountRemaining.value,
-        paymentPeriod: parseInt(form.value.paymentPeriod || '4'),
+        paymentPeriod: form.value.paymentPeriod === 'full' ? 0 : parseInt(form.value.paymentPeriod || '0'),
       })
 
       ElMessage.success('Студент успешно добавлен')
       showSuccess.value = true
       resetForm()
     } catch (err) {
+      console.error(err)
       ElMessage.error('Ошибка при добавлении студента')
     }
   })
 }
-
-function getDiscountPercent(type: string): number {
-  switch (type) {
-    case 'Скидка 30%':
-      return 30
-    case 'Скидка 70%':
-      return 70
-    case 'TechOrda':
-    case 'Внутренний грант':
-      return 100
-    case 'Полная оплата':
-    default:
-      return 0
-  }
-}
-
-
 
 function resetForm() {
   form.value = {
@@ -334,7 +330,6 @@ function resetForm() {
     iin: '',
     email: '',
     phone: '',
-    course: '',
     status: '',
     topStudent: false,
     financing: '',
@@ -345,15 +340,12 @@ function resetForm() {
   }
 }
 
-
-
-
-
 function onSuccessContinue() {
   showSuccess.value = false
   router.push({ name: 'Students' })
 }
 </script>
+
 
 <style scoped>
 .success-dialog .el-dialog__body {

@@ -2,25 +2,6 @@ const express = require('express');
 const router = express.Router();
 const pool = require('../config/db');
 
-function mapFundingSource(input) {
-  if (!input) return null;
-
-  const normalized = input.toLowerCase().trim();
-
-  switch (normalized) {
-    case 'грант':
-    case 'grant':
-      return 'Грант';
-    case 'полная оплата':
-    case 'full':
-      return 'Полная оплата';
-    case 'со скидкой 30%':
-    case 'discount':
-      return 'Со скидкой 30%';
-    default:
-      return null;
-  }
-}
 
 
 router.get('/students/courses', async (req, res) => {
@@ -99,14 +80,33 @@ router.post('/students', async (req, res) => {
     payment_period
   } = req.body;
 
-  const fundingSource = mapFundingSource(funding_source);
-
-  if (!fundingSource) {
-    console.log('Некорректный источник финансирования:', funding_source);
-    return res.status(400).json({
-      error: `Неверный funding_source: "${funding_source}". Ожидается "Грант", "Полная оплата" или "Со скидкой 30%".`
-    });
+  if (!funding_source) {
+    return res.status(400).json({ error: 'Поле "funding_source" обязательно' });
   }
+
+  let fundingSourceText;
+
+  switch (funding_source) {
+    case 'techorda':
+      fundingSourceText = 'TechOrda';
+      break;
+    case 'internal_grant':
+      fundingSourceText = 'Внутренний грант';
+      break;
+    case 'full':
+      fundingSourceText = 'Полная оплата';
+      break;
+    case 'discount_30':
+      fundingSourceText = 'Скидка 30%';
+      break;
+    case 'discount_70':
+      fundingSourceText = 'Скидка 70%';
+      break;
+    default:
+      return res.status(400).json({ error: `Неверный funding_source: "${funding_source}".` });
+  }
+
+
 
 
   try {
@@ -128,14 +128,17 @@ router.post('/students', async (req, res) => {
         phone,
         status,
         top_student === 'on',
-        fundingSource,
+        fundingSourceText, // ✅ вот теперь правильно
         subject,
         total_cost || 0,
         discount_percent || 0,
         paid_amount || 0,
         payment_period || 4
       ]
-    );
+    )
+
+
+
     res.status(201).json({ message: 'Студент добавлен' });
   } catch (err) {
     console.error('Ошибка при добавлении студента:', err);
