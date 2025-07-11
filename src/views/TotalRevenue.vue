@@ -83,11 +83,11 @@
         </ul>
       </div>
       <div class="relative">
-      <button @click="clearAllFilters"
-        class="filter-select w-full flex justify-between items-center">
-        Очистить фильтры
-      </button>
-    </div>
+        <button @click="clearAllFilters"
+          class="filter-select w-full flex justify-between items-center">
+          Очистить фильтры
+        </button>
+      </div>
     </div>
 
     <!-- Таблица -->

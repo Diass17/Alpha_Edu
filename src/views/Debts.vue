@@ -59,6 +59,12 @@
           </li>
         </ul>
       </div>
+      <div class="relative">
+        <button @click="clearAllFilters"
+          class="filter-select w-full flex justify-between items-center">
+          Очистить фильтры
+        </button>
+      </div>
     </div>
     <!-- Table -->
     <table class="w-full bg-white border border-purple-200 rounded-lg overflow-hidden text-left mt-6">
@@ -125,6 +131,7 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import * as XLSX from 'xlsx'
+
 
 // Даты и фильтры
 const startDate = ref(null)
@@ -205,6 +212,16 @@ const downloadExcel = () => {
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Задолженности')
   XLSX.writeFile(workbook, 'Задолженности.xlsx')
+}
+
+const selectedStatus = ref('')
+const showStatusDropdown = ref(false)
+
+function clearAllFilters() {
+  startDate.value = null
+  endDate.value = null
+  selectedStatus.value = ''
+  showStatusDropdown.value = false
 }
 </script>
 

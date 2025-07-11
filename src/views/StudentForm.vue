@@ -70,21 +70,24 @@
 
           <!-- Financing + Add Course -->
           <el-form-item prop="financing">
-            <div class="flex items-center space-x-4">
-              <el-select v-model="form.financing" placeholder="Финансирование" size="large" clearable
-                class="flex-1 bg-purple-50 rounded-xl text-lg">
-                <el-option label="Полная оплата" value="Полная оплата" />
-                <el-option label="TechOrda" value="TechOrda" />
-                <el-option label="Скидка 30%" value="Скидка 30%" />
-                <el-option label="Скидка 70%" value="Скидка 70%" />
-                <el-option label="Внутренний грант" value="Внутренний грант" />
-              </el-select>
-              <el-button type="primary" icon="Plus" size="large"
-                class="bg-purple-600 hover:bg-purple-700 rounded-xl text-white" @click="addCourse">
-                Добавить курс
-              </el-button>
-            </div>
+            <el-select v-model="form.financing" placeholder="Финансирование" size="large" clearable
+              class="w-full bg-purple-50 rounded-xl text-lg">
+              <el-option label="Полная оплата" value="Полная оплата" />
+              <el-option label="TechOrda" value="TechOrda" />
+              <el-option label="Скидка 30%" value="Скидка 30%" />
+              <el-option label="Скидка 70%" value="Скидка 70%" />
+              <el-option label="Внутренний грант" value="Внутренний грант" />
+            </el-select>
           </el-form-item>
+
+          <!-- Кнопка "Добавить курс", отдельно под селектом и справа -->
+          <div class="flex justify-end mb-4">
+            <el-button type="primary" icon="Plus" size="large"
+              class="bg-purple-600 hover:bg-purple-700 rounded-xl text-white" @click="addCourse">
+              Добавить курс
+            </el-button>
+          </div>
+
         </div>
       </el-form>
 
@@ -177,6 +180,8 @@ onMounted(async () => {
   const res = await fetch('/api/students/courses')
   courses.value = await res.json()
 })
+
+
 
 const discountedPrice = computed(() => {
   const price = form.value.coursePrice
