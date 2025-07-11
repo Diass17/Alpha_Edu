@@ -102,7 +102,10 @@
                 Оплата за курс
               </th>
               <th class="py-3 px-6 text-right text-lg text-gray-800">
-                {{ form.coursePrice }} ₸
+                <el-input v-model.number="form.coursePrice" placeholder="Введите сумму" size="large"
+                  class="w-40 text-right" type="number" min="0">
+                  <template #suffix>₸</template>
+                </el-input>
               </th>
             </tr>
           </thead>
@@ -115,13 +118,12 @@
             <tr class="border-t">
               <td class="py-3 px-6 text-left text-lg text-gray-800">Выбор период оплаты</td>
               <td class="py-3 px-6 text-right text-lg text-gray-800">
-                <el-select v-model="form.paymentPeriod" placeholder="Выбрать" clearable
-                  class="w-40 bg-white rounded-lg text-lg">
-                  <el-option label="Полная сумма" value="full" />
-                  <el-option label="2 месяца" value="2" />
-                  <el-option label="3 месяца" value="3" />
-                  <el-option label="6 месяцев" value="6" />
-                  <el-option label="12 месяцев" value="12" />
+                <el-select v-model="form.paymentPeriod" placeholder="Выбрать" class="w-40 bg-white rounded-lg text-lg">
+                  <el-option label="Полная сумма" :value="0" />
+                  <el-option label="2 месяца" :value="2" />
+                  <el-option label="3 месяца" :value="3" />
+                  <el-option label="6 месяцев" :value="6" />
+                  <el-option label="12 месяцев" :value="12" />
                 </el-select>
               </td>
             </tr>
@@ -191,11 +193,12 @@ const form = ref({
   status: '',
   topStudent: false,
   financing: '',
-  paymentPeriod: '',
+  paymentPeriod: 0, // было '', стало 0
   subject: '',
   coursePrice: 0,
   amountPaid: 0,
 })
+
 
 const rules = {
   surname: [
@@ -226,7 +229,14 @@ const rules = {
   ],
   status: [
     { required: true, message: 'Выберите статус', trigger: ['blur', 'change'] }
-  ]
+  ],
+  coursePrice: [
+    { required: true, message: 'Введите стоимость курса', trigger: ['blur', 'change'] },
+    { type: 'number', min: 1, message: 'Цена должна быть больше 0', trigger: ['blur', 'change'] }
+  ],
+  paymentPeriod: [
+    { required: true, message: 'Выберите период оплаты', trigger: ['blur', 'change'] }
+  ],
 }
 
 
@@ -309,7 +319,7 @@ async function confirmSave() {
         discount_percent: getDiscountPercent(form.value.financing),
         paid_amount: form.value.amountPaid,
         amount_remaining: amountRemaining.value,
-        paymentPeriod: form.value.paymentPeriod === 'full' ? 0 : parseInt(form.value.paymentPeriod || '0'),
+        paymentPeriod: form.value.paymentPeriod,
       })
 
       ElMessage.success('Студент успешно добавлен')
@@ -333,7 +343,7 @@ function resetForm() {
     status: '',
     topStudent: false,
     financing: '',
-    paymentPeriod: '',
+    paymentPeriod: 0, // ← Заменено с '' на 0
     subject: '',
     coursePrice: 0,
     amountPaid: 0,

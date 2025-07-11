@@ -77,7 +77,7 @@ router.post('/students', async (req, res) => {
   const {
     full_name, iin, email, phone, status, top_student,
     funding_source, subject, total_cost, discount_percent, paid_amount,
-    payment_period
+    payment_period, paymentPeriod // <- на случай если с фронта camelCase
   } = req.body;
 
   if (!funding_source) {
@@ -106,21 +106,21 @@ router.post('/students', async (req, res) => {
       return res.status(400).json({ error: `Неверный funding_source: "${funding_source}".` });
   }
 
-
-
-
   try {
+    const parsedPeriod = parseInt(payment_period ?? paymentPeriod, 10);
+    const finalPaymentPeriod = Number.isFinite(parsedPeriod) ? parsedPeriod : 0;
     const amount_remaining = total_cost - paid_amount;
+
     await pool.query(
       `INSERT INTO students (
-    full_name, iin, email, phone, status, top_student,
-    funding_source, subject, total_cost, discount_percent,
-    paid_amount, payment_period
-  ) VALUES (
-    $1, $2, $3, $4, $5, $6,
-    $7, $8, $9, $10,
-    $11, $12
-  )`,
+        full_name, iin, email, phone, status, top_student,
+        funding_source, subject, total_cost, discount_percent,
+        paid_amount, payment_period
+      ) VALUES (
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9, $10,
+        $11, $12
+      )`,
       [
         full_name,
         iin,
@@ -128,16 +128,14 @@ router.post('/students', async (req, res) => {
         phone,
         status,
         top_student === 'on',
-        fundingSourceText, // ✅ вот теперь правильно
+        fundingSourceText,
         subject,
         total_cost || 0,
         discount_percent || 0,
         paid_amount || 0,
-        payment_period || 4
+        finalPaymentPeriod // ✅ корректно вычислено
       ]
-    )
-
-
+    );
 
     res.status(201).json({ message: 'Студент добавлен' });
   } catch (err) {
@@ -145,6 +143,7 @@ router.post('/students', async (req, res) => {
     res.status(500).json({ error: 'Ошибка при добавлении. Проверьте данные.' });
   }
 });
+
 
 router.post('/students/delete/:id', async (req, res) => {
   const studentId = req.params.id;
