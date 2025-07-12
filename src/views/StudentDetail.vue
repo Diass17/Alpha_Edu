@@ -39,7 +39,7 @@
     </div>
 
     <!-- Student Info -->
-    <div class="w-full mb-10 rounded-2xl border border-[#E0D7FF] bg-white shadow overflow-hidden">
+    <div class="w-full mb-10 rounded-2xl border border-[#E0D7FF] bg-white shadow overflow-visible">
       <table class="w-full text-base">
         <thead class="bg-[#F1EFFF] text-black text-[18px] font-semibold">
           <tr>
@@ -51,18 +51,30 @@
           <tr v-for="field in studentFields" :key="field.key">
             <td class="px-12 py-3">{{ field.label }}</td>
             <td class="px-12 py-3">
+              <!-- Если редактируем -->
               <template v-if="isEditing">
-                <component :is="field.key === 'topStudent' ? 'input' : field.editType" v-model="editForm[field.key]"
-                  v-bind="field.props" :checked="field.key === 'topStudent' ? editForm[field.key] : undefined"
-                  :type="field.key === 'topStudent' ? 'checkbox' : undefined" />
+                <template v-if="field.key === 'topStudent'">
+                  <input type="checkbox" v-model="editForm[field.key]" class="form-checkbox w-5 h-5" />
+                </template>
+                <template v-else-if="field.key === 'paymentPeriod'">
+                  <el-select v-model="editForm.paymentPeriod" placeholder="Выбрать"
+                    class="w-40 bg-white rounded-lg text-lg">
+                    <el-option label="Полная сумма" :value="0" />
+                    <el-option label="2 месяца" :value="2" />
+                    <el-option label="3 месяца" :value="3" />
+                    <el-option label="6 месяцев" :value="6" />
+                    <el-option label="12 месяцев" :value="12" />
+                  </el-select>
+                </template>
+                <template v-else>
+                  <component :is="field.editType" v-model="editForm[field.key]" v-bind="field.props" />
+                </template>
               </template>
+
+              <!-- Если только просмотр -->
               <template v-else>
                 <template v-if="field.key === 'topStudent'">
-                  <input type="checkbox" :checked="editForm.topStudent"
-                    class="form-checkbox accent-[#38D473] w-5 h-5 border-2 rounded" disabled />
-                </template>
-                <template v-else-if="field.key === 'amount_remaining'">
-                  {{ formatTenge(editForm.amount_remaining ?? 0) }}
+                  <input type="checkbox" :checked="editForm.topStudent" class="form-checkbox w-5 h-5" disabled />
                 </template>
                 <template v-else-if="field.key === 'paymentPeriod'">
                   {{ formatPaymentPeriod(editForm.paymentPeriod) }}
@@ -78,7 +90,7 @@
     </div>
 
     <!-- Payment Summary -->
-    <div class="w-full mb-10 rounded-2xl border border-[#E0D7FF] bg-white shadow overflow-hidden">
+    <div class="w-full mb-10 rounded-2xl border border-[#E0D7FF] bg-white shadow overflow-visible">
       <table class="w-full text-base">
         <thead class="bg-[#F1EFFF] text-sm font-semibold">
           <tr>
@@ -128,7 +140,7 @@
           <tr>
             <td class="px-12 py-3">Сумма к оплате</td>
             <td class="px-12 py-3 text-right">
-              {{ formatTenge(amountDue) }}
+              {{ formatTenge(editForm.amount_remaining ?? 0) }}
             </td>
           </tr>
         </tbody>
@@ -164,7 +176,7 @@
 
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useStudentStore, StudentFull } from '@/store/studentStore'
 import CustomDropdown from '@/components/CustomDropdown.vue'
@@ -183,7 +195,8 @@ const editForm = ref<any>({})
 const coursesList = ['Data Science', 'Generative AI', 'Mobile Dev']
 const flowsList = ['DSF-1', 'A1', 'B2']
 const statusOptions = ['Студент', 'Выпускник']
-const financingOptions = ['TechOrda', '30% скидка', 'Грант']
+const financingOptions = ['Полная оплата', 'TechOrda', 'Скидка 30%', 'Скидка 70%', 'Внутренний грант']
+
 
 const studentFields = [
   { key: 'iin', label: 'ИИН', editType: 'input', props: { class: 'input-basic' } },
@@ -192,10 +205,43 @@ const studentFields = [
   { key: 'status', label: 'Статус', editType: CustomDropdown, props: { options: statusOptions, class: 'w-48' } },
   { key: 'topStudent', label: 'Top Student', editType: 'input', props: { type: 'checkbox' } },
   { key: 'financing', label: 'Финансирование', editType: CustomDropdown, props: { options: financingOptions, class: 'w-48' } },
-  { key: 'paymentPeriod', label: 'Период оплаты', editType: 'input', props: { class: 'input-basic', type: 'number', min: 1, max: 12 } },
+  {
+    key: 'paymentPeriod',
+    label: 'Период оплаты',
+    editType: 'el-select',
+    props: {
+      class: 'w-40 bg-white rounded-lg text-lg',
+      placeholder: 'Выбрать',
+      options: [
+        { label: 'Полная сумма', value: 0 },
+        { label: '2 месяца', value: 2 },
+        { label: '3 месяца', value: 3 },
+        { label: '6 месяцев', value: 6 },
+        { label: '12 месяцев', value: 12 },
+      ]
+    }
+  },
+
 ]
 
+watch(
+  () => [editForm.value.financing, editForm.value.totalCoursePrice],
+  ([financing, price]) => {
+    const discount = getDiscountPercent(financing)
+    editForm.value.discountPercent = discount
+    editForm.value.discountedPrice = Math.round(price * (1 - discount / 100))
+  },
+  { immediate: true }
+)
 
+watch(
+  () => [editForm.value.paid_amount, editForm.value.discountedPrice],
+  ([paid, discounted]) => {
+    const remaining = Math.max(Number(discounted) - Number(paid), 0)
+    editForm.value.amount_remaining = remaining
+  },
+  { immediate: true }
+)
 
 onMounted(async () => {
   if (!store.list.length) await store.fetchStudents()
@@ -219,6 +265,10 @@ onMounted(async () => {
     discountPercent: getDiscountPercent(res.funding_source),
     discountedPrice: Math.round((res.total_cost ?? 0) * (1 - getDiscountPercent(res.funding_source) / 100)),
     paid_amount: res.paid_amount ?? 0,
+    amount_remaining: Math.max(
+      Math.round((res.total_cost ?? 0) * (1 - discount / 100)) - Number(res.paid_amount ?? 0),
+      0
+    ),
   }
 })
 
@@ -252,6 +302,10 @@ function startEdit() {
     discountPercent: getDiscountPercent(student.value.funding_source),
     discountedPrice: Math.round((student.value.total_cost ?? 0) * (1 - getDiscountPercent(student.value.funding_source) / 100)),
     paid_amount: student.value.paid_amount ?? 0,
+    amount_remaining: Math.max(
+      Math.round((student.value.total_cost ?? 0) * (1 - discount / 100)) - Number(student.value.paid_amount ?? 0),
+      0
+    ),
   }
 
   isEditing.value = true
@@ -286,26 +340,43 @@ function cancelEdit() {
   isEditing.value = false
 }
 
+const amountRemaining = computed(() => {
+  return Math.max(
+    (editForm.value.totalCoursePrice || 0) * (1 - (editForm.value.discountPercent || 0) / 100)
+    - Number(editForm.value.paid_amount || 0),
+    0
+  )
+})
+
+
 async function saveEdit() {
   if (!student.value) return
 
   const payload = {
-    ...editForm.value,
-    subject: editForm.value.course,
+    full_name: editForm.value.full_name,
+    subject: editForm.value.course, // ✅ важно: в БД это subject
     stream: editForm.value.stream,
+    iin: editForm.value.iin,
+    email: editForm.value.email,
+    phone: editForm.value.phone,
+    status: editForm.value.status,
     top_student: editForm.value.topStudent,
-    funding_source: editForm.value.financing,
+    funding_source: editForm.value.financing, // ты просил не трогать
     payment_period: Number(editForm.value.paymentPeriod),
     total_cost: Number(editForm.value.totalCoursePrice),
     discount_percent: Number(editForm.value.discountPercent),
     paid_amount: Number(editForm.value.paid_amount),
-    amount_remaining: Number(editForm.value.discountedPrice ?? 0) - Number(editForm.value.paid_amount),
+    amount_remaining: amountRemaining.value, // ✅ computed
   }
 
-  await store.updateStudent(student.value.id, payload)
-  student.value = await store.fetchById(id)
-  isEditing.value = false
-  showSuccess.value = true
+  try {
+    await store.updateStudent(student.value.id, payload)
+    student.value = await store.fetchById(id)
+    isEditing.value = false
+    showSuccess.value = true
+  } catch (err) {
+    console.error('Ошибка при сохранении:', err)
+  }
 }
 
 
@@ -357,5 +428,9 @@ function goToList() {
   border-radius: 0.5rem;
   font-weight: 500;
   transition: border 0.3s;
+}
+
+.dropdown-popper {
+  z-index: 9999 !important;
 }
 </style>
