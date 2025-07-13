@@ -66,10 +66,16 @@
                     <el-option label="12 месяцев" :value="12" />
                   </el-select>
                 </template>
+                <!-- 💡 Новый надёжный способ для input -->
+                <template v-else-if="field.editType === 'input'">
+                  <input v-model="editForm[field.key]" v-bind="field.props" />
+                </template>
+                <!-- Остальные типы (например, CustomDropdown) -->
                 <template v-else>
                   <component :is="field.editType" v-model="editForm[field.key]" v-bind="field.props" />
                 </template>
               </template>
+
 
               <!-- Если только просмотр -->
               <template v-else>
@@ -350,6 +356,7 @@ const amountRemaining = computed(() => {
 
 
 async function saveEdit() {
+  console.log('Сохраняем данные:', editForm.value)
   if (!student.value) return
 
   const payload = {
