@@ -6,8 +6,20 @@
 
     <!-- Main area -->
     <div class="flex-1 p-8">
-      <!-- Title -->
-      <h1 class="text-3xl font-bold mb-6">Добавить студента</h1>
+      <!-- Title with Close Button -->
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-3xl font-bold">Добавить студента</h1>
+
+        <button @click="router.back()"
+          class="w-8 h-8 flex items-center justify-center bg-purple-50 hover:bg-purple-100 rounded-full shadow transition"
+          aria-label="Закрыть">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
 
       <!-- Form -->
       <el-form ref="formRef" :model="form" :rules="rules" label-width="0" class="space-y-4 validate-on-rule-change">
