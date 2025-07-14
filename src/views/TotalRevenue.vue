@@ -95,7 +95,7 @@
       <thead class="bg-[#ECE9FF] text-sm font-semibold">
         <tr>
           <th class="px-4 py-2">Дата</th>
-          <th class="px-4 py-2">Сумма (тг)</th>
+          <th class="px-4 py-2">Оплачено (тг)</th>
           <th class="px-4 py-2">Курс</th>
           <th class="px-4 py-2">Студент</th>
           <th class="px-4 py-2">Оплата</th>

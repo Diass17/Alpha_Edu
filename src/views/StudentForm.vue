@@ -142,8 +142,14 @@
 
             <tr class="border-t">
               <td class="py-3 px-6 text-left text-lg text-gray-800">Сумма оплачено</td>
-              <td class="py-3 px-6 text-right text-lg text-gray-800">{{ form.amountPaid }} ₸</td>
+              <td class="py-3 px-6 text-right text-lg text-gray-800">
+                <el-input v-model.number="form.amountPaid" placeholder="Введите сумму" size="large"
+                  class="w-40 text-right" type="number" min="0">
+                  <template #suffix>₸</template>
+                </el-input>
+              </td>
             </tr>
+
 
             <tr class="border-t">
               <td class="py-3 px-6 text-left text-lg text-gray-800">Сумма к оплате</td>
@@ -205,7 +211,7 @@ const form = ref({
   status: '',
   topStudent: false,
   financing: '',
-  paymentPeriod: 0, // было '', стало 0
+  paymentPeriod: 0,
   subject: '',
   coursePrice: 0,
   amountPaid: 0,

@@ -19,27 +19,30 @@
     <div class="filters-wrapper relative flex flex-wrap gap-3 mb-6">
 
       <!-- Тип финансирования -->
+      <!-- Тип финансирования -->
       <div class="relative w-56">
         <button @click="toggleFundingType" class="filter-select w-full flex justify-between items-center funding-btn"
           type="button">
-
-          {{ selectedFundingType || 'Тип финансирования' }}
-          <svg :class="[
-            'w-4 h-4 ml-2 transform transition-transform duration-200',
-            showFundingType ? 'rotate-180' : ''
-          ]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          {{ selectedFundingTypes.length ? selectedFundingTypes.join(', ') : 'Тип финансирования' }}
+          <svg
+            :class="['w-4 h-4 ml-2 transform transition-transform duration-200', showFundingType ? 'rotate-180' : '']"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
+
         <ul v-if="showFundingType"
-          class="funding-dropdown absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg">
+          class="funding-dropdown absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           <li v-for="option in fundingTypes" :key="option" @click="selectFundingType(option)"
-            class="cursor-pointer px-4 py-2 hover:bg-gray-100"
-            :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFundingType === option }">
-            {{ option }}
+            class="cursor-pointer px-4 py-2 hover:bg-gray-100 flex justify-between items-center">
+            <span :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFundingTypes.includes(option) }">
+              {{ option }}
+            </span>
+            <span v-if="selectedFundingTypes.includes(option)" class="text-[rgb(98,82,254)]">✔</span>
           </li>
         </ul>
       </div>
+
 
       <!-- Очистить фильтры -->
       <div class="relative">
@@ -129,7 +132,7 @@ const route = useRoute()
 
 const fundingTypes = ['TechOrda', 'Скидка 30%', 'Скидка 70%', 'Внутренний грант', 'Полная оплата']
 
-const selectedFundingType = ref('')
+const selectedFundingTypes = ref([])
 const showFundingType = ref(false)
 
 const students = ref([])
@@ -196,7 +199,7 @@ const fundingOrder = {
 const filteredStudents = computed(() => {
   return students.value
     .filter(s => {
-      const matchType = !selectedFundingType.value || s.funding === selectedFundingType.value
+      const matchType = selectedFundingTypes.value.length === 0 || selectedFundingTypes.value.includes(s.funding)
       return matchType
     })
     .sort((a, b) => {
@@ -207,15 +210,17 @@ const filteredStudents = computed(() => {
 
 function toggleFundingType() {
   showFundingType.value = !showFundingType.value
-  showCoveragePercent.value = false
 }
-
-
 
 function selectFundingType(option) {
-  selectedFundingType.value = option
-  showFundingType.value = false
+  const index = selectedFundingTypes.value.indexOf(option)
+  if (index === -1) {
+    selectedFundingTypes.value.push(option)
+  } else {
+    selectedFundingTypes.value.splice(index, 1)
+  }
 }
+
 
 
 const fundingSummary = computed(() => {
@@ -261,11 +266,12 @@ function handleClickOutside(e) {
 
   if (
     showFundingType.value &&
-    !fundingDropdown?.contains(target) &&
-    !fundingBtn?.contains(target)
+    !document.querySelector('.funding-dropdown')?.contains(target) &&
+    !document.querySelector('.funding-btn')?.contains(target)
   ) {
     showFundingType.value = false
   }
+
 
   if (
     showCoveragePercent.value &&
@@ -277,9 +283,10 @@ function handleClickOutside(e) {
 }
 
 function clearFilters() {
-  selectedFundingType.value = ''
+  selectedFundingTypes.value = []
   showFundingType.value = false
 }
+
 
 
 

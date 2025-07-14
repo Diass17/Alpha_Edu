@@ -13,7 +13,7 @@
     <div class="filters-wrapper relative flex flex-wrap gap-3 mb-6">
       <!-- Начало периода -->
       <div class="relative">
-        <button @click="toggleStartPicker" class="filter-select w-48">
+        <button @click="toggleStartPicker" class="filter-select w-48 start-picker-btn">
           {{ startDate ? formatDate(startDate) : 'Начало периода' }}
         </button>
         <teleport to="body">
@@ -25,7 +25,7 @@
 
       <!-- Конец периода -->
       <div class="relative">
-        <button @click="toggleEndPicker" class="filter-select w-48">
+        <button @click="toggleEndPicker" class="filter-select w-48 end-picker-btn">
           {{ endDate ? formatDate(endDate) : 'Конец периода' }}
         </button>
         <teleport to="body">
@@ -36,19 +36,18 @@
       </div>
 
       <!-- Статус (дропдаун) -->
-      <div class="relative w-40">
+      <div class="relative w-40 status-dropdown">
         <button @click="toggleStatusDropdown" class="filter-select w-full flex justify-between items-center"
           type="button">
           {{ selectedStatus || 'Статус' }}
-          <svg :class="[
-            'w-4 h-4 ml-2 transform transition-transform duration-200',
-            showStatusDropdown ? 'rotate-180' : ''
-          ]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg
+            :class="['w-4 h-4 ml-2 transform transition-transform duration-200', showStatusDropdown ? 'rotate-180' : '']"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
         <ul v-if="showStatusDropdown" class="absolute z-50 mt-2 w-full bg-white border border-purple-200
-           rounded-lg shadow-lg overflow-hidden">
+     rounded-lg shadow-lg overflow-hidden">
           <li @click="selectStatus('Оплачен')" class="cursor-pointer px-4 py-2 hover:bg-gray-100"
             :class="{ 'text-[rgb(98,82,254)] font-medium': selectedStatus === 'Оплачен' }">
             Оплачен
@@ -60,8 +59,7 @@
         </ul>
       </div>
       <div class="relative">
-        <button @click="clearAllFilters"
-          class="filter-select w-full flex justify-between items-center">
+        <button @click="clearAllFilters" class="filter-select w-full flex justify-between items-center">
           Очистить фильтры
         </button>
       </div>
@@ -128,9 +126,10 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import * as XLSX from 'xlsx'
+import Datepicker from 'vue3-datepicker'
 
 
 // Даты и фильтры
@@ -138,11 +137,16 @@ const startDate = ref(null)
 const endDate = ref(null)
 const showStartPicker = ref(false)
 const showEndPicker = ref(false)
+const popupPosition = ref({ start: '', end: '' })
+
+const startPickerRef = ref(null)
+const endPickerRef = ref(null)
 
 // Таблица данных
 const rows = ref([])
 
 onMounted(async () => {
+  document.addEventListener('click', handleClickOutside)
   try {
     const response = await axios.get('http://localhost:3000/reports/debts')
     rows.value = response.data.map(item => ({
@@ -158,9 +162,24 @@ onMounted(async () => {
   }
 })
 
-const filteredRows = computed(() => {
-  return [...rows.value].sort((a, b) => a.id - b.id)
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
+
+const filteredRows = computed(() => {
+  let result = [...rows.value]
+
+  if (selectedStatus.value) {
+    result = result.filter(row => row.status === selectedStatus.value)
+  }
+
+  return result.sort((a, b) => a.id - b.id)
+})
+
+function selectStatus(status) {
+  selectedStatus.value = status
+  showStatusDropdown.value = false
+}
 
 const totalPayments = computed(() =>
   filteredRows.value.reduce((sum, row) => sum + (row.amount || 0), 0)
@@ -181,24 +200,30 @@ const formatDate = (date) =>
 // Календарь
 function toggleStartPicker(event) {
   showStartPicker.value = !showStartPicker.value
+
   if (showStartPicker.value) {
+    showEndPicker.value = false // ✅ Закрыть другой календарь
     const rect = event.target.getBoundingClientRect()
     popupPosition.value.start = `position: absolute; top: ${rect.bottom + window.scrollY + 5}px; left: ${rect.left}px; z-index: 9999;`
   }
 }
 function toggleEndPicker(event) {
   showEndPicker.value = !showEndPicker.value
+
   if (showEndPicker.value) {
+    showStartPicker.value = false // ✅ Закрыть другой календарь
     const rect = event.target.getBoundingClientRect()
     popupPosition.value.end = `position: absolute; top: ${rect.bottom + window.scrollY + 5}px; left: ${rect.left}px; z-index: 9999;`
   }
 }
-const closeStartPicker = () => { showStartPicker.value = false }
-const closeEndPicker = () => { showEndPicker.value = false }
 
 function toggleStatusDropdown() {
   showStatusDropdown.value = !showStatusDropdown.value
+  // Закрываем календарь, если открыт
+  showStartPicker.value = false
+  showEndPicker.value = false
 }
+
 
 // Excel
 const downloadExcel = () => {
@@ -222,6 +247,28 @@ function clearAllFilters() {
   endDate.value = null
   selectedStatus.value = ''
   showStatusDropdown.value = false
+}
+
+function handleClickOutside(e) {
+  const target = e.target
+
+  if (!startPickerRef.value?.contains(target) && !target.closest('.start-picker-btn')) {
+    showStartPicker.value = false
+  }
+
+  if (!endPickerRef.value?.contains(target) && !target.closest('.end-picker-btn')) {
+    showEndPicker.value = false
+  }
+
+  const statusDropdown = document.querySelector('.status-dropdown')
+  if (
+    showStatusDropdown.value &&
+    statusDropdown &&
+    !statusDropdown.contains(target) &&
+    !target.closest('.filter-select')
+  ) {
+    showStatusDropdown.value = false
+  }
 }
 </script>
 

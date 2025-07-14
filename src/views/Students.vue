@@ -56,8 +56,8 @@
         size="medium"
         @click="triggerExcelInput"
       >
-        <img :src="arrowDownLogo" alt="Импорт" class="w-5 h-5 mr-2" />
-        Импорт из Excel
+        <img :src="arrowUpLogo" alt="Импорт" class="w-5 h-5 mr-2" />
+        Загрузить из файла
       </el-button>
 
       <el-button
@@ -65,8 +65,8 @@
         size="medium"
         @click="onSaveExcel"
         >
-        <img :src="arrowUpLogo" alt="Экспорт" class="w-5 h-5 mr-2" />
-        Сохранить в Excel
+        <img :src="arrowDownLogo" alt="Экспорт" class="w-5 h-5 mr-2" />
+        Скачать шаблон
       </el-button>
     </div>
 
