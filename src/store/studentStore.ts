@@ -17,10 +17,19 @@ export interface Student {
   discount_percent: number
   paid_amount: number
   amount_remaining: number
-  payment_period: number // ✅ snake_case из API
+  payment_period: number
   stream_id?: number
   stream?: string
+
+  // 👇 Добавь это
+  payment_schedule?: {
+    date: string
+    amount: number
+    paid: boolean
+    comment?: string
+  }[]
 }
+
 
 // 📌 Тип для потоков
 export interface Stream {

@@ -88,7 +88,12 @@
           <td class="px-4 py-2">{{ item.amount.toLocaleString('ru-RU') }}</td>
           <td class="px-4 py-2">{{ item.paymentDate }}</td>
           <td class="px-4 py-2">
-            <span class="status-unpaid">Не оплачен</span>
+            <span :class="{
+              'status-unpaid': item.status === 'Не оплачен',
+              'status-paid': item.status === 'Оплачен'
+            }">
+              {{ item.status }}
+            </span>
           </td>
           <td class="px-4 py-2">{{ item.comment }}</td>
         </tr>
@@ -147,20 +152,72 @@ const rows = ref([])
 
 onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
+
   try {
     const response = await axios.get('http://localhost:3000/reports/debts')
-    rows.value = response.data.map(item => ({
-      id: item.id, // добавляем id
-      student: item.full_name,
-      amount: item.amount_remaining,
-      paymentDate: '-',
-      status: 'Не оплачен',
-      comment: ''
-    }))
+    const students = response.data
+
+    // Параллельно загружаем paymentSchedule для каждого студента
+    const updatedRows = await Promise.all(
+      students.map(async (student) => {
+        let status = 'Не оплачен'
+        let paymentDate = '-'
+
+        // 💡 приоритет: если amount_remaining === 0 — значит всё оплачено
+        if (student.amount_remaining === 0) {
+          status = 'Оплачен'
+        } else {
+          // иначе пробуем получить график и проверить по нему
+          try {
+            const res = await axios.get(`http://localhost:3000/api/students/${student.id}/payment-schedule`)
+            const schedule = res.data.paymentSchedule
+
+            if (Array.isArray(schedule) && schedule.length > 0) {
+              const allPaid = schedule.every(item => item.paid)
+              if (allPaid) {
+                status = 'Оплачен'
+              }
+
+              const sortedByDate = schedule
+                .filter(item => item.date)
+                .sort((a, b) => new Date(a.date) - new Date(b.date))
+
+              if (sortedByDate.length > 0) {
+                const nextUnpaid = sortedByDate.find(item => !item.paid)
+                const lastPaid = [...sortedByDate].reverse().find(item => item.paid)
+
+                if (nextUnpaid) {
+                  paymentDate = new Date(nextUnpaid.date).toLocaleDateString('ru-RU')
+                } else if (lastPaid) {
+                  paymentDate = new Date(lastPaid.date).toLocaleDateString('ru-RU')
+                }
+              }
+            }
+          } catch (err) {
+            console.warn(`Не удалось получить график студента ID ${student.id}`, err)
+          }
+        }
+
+        return {
+          id: student.id,
+          student: student.full_name,
+          amount: student.amount_remaining,
+          paidAmount: student.paid_amount || 0,
+          paymentDate,
+          status,
+          comment: ''
+        }
+      })
+    )
+
+    // 🧹 Оставляем только тех, у кого есть задолженность
+    rows.value = updatedRows.filter(row => row.amount > 0)
   } catch (e) {
-    console.error('Ошибка при загрузке:', e)
+    console.error('Ошибка при загрузке задолженностей:', e)
   }
 })
+
+
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
@@ -184,7 +241,9 @@ function selectStatus(status) {
 const totalPayments = computed(() =>
   filteredRows.value.reduce((sum, row) => sum + (row.amount || 0), 0)
 )
-const paidAmount = computed(() => 0)
+const paidAmount = computed(() =>
+  filteredRows.value.reduce((sum, row) => sum + (row.paidAmount || 0), 0)
+)
 const unpaidAmount = computed(() => totalPayments.value - paidAmount.value)
 
 const formattedPeriod = computed(() => {
@@ -343,5 +402,14 @@ function handleClickOutside(e) {
   gap: 16px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.status-paid {
+  border: 1px solid #28a745;
+  color: #28a745;
+  padding: 2px 10px;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 500;
 }
 </style>

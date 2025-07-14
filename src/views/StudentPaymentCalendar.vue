@@ -275,6 +275,8 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useStudentStore } from '@/store/studentStore'
 import Datepicker from "@vuepic/vue-datepicker"
 import "@vuepic/vue-datepicker/dist/main.css"
+import axios from 'axios'
+import { useRoute } from 'vue-router'
 
 interface ScheduleItem {
   date: string
@@ -318,6 +320,9 @@ const selectedFinancing = ref('')
 const showFinancingDropdown = ref(false)
 
 const topStudent = ref(false)
+
+const route = useRoute()
+const studentId = route.params.id
 
 // Форма добавления платежа
 const showAddPanel = ref(false)
@@ -375,33 +380,23 @@ function onAddPayment() {
   showAddPanel.value = !showAddPanel.value
 }
 
-// Переключение статуса оплаты
-function togglePaymentStatus(index: number) {
-  if (!student.value) return
-  student.value.paymentSchedule[index].paid = !student.value.paymentSchedule[index].paid
+
+async function savePaymentScheduleToDB() {
+  if (!student.value) return;
+
+  try {
+    await fetch(`/api/students/${student.value.id}/payment-schedule`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paymentSchedule: student.value.paymentSchedule
+      })
+    });
+  } catch (err) {
+    console.error('Ошибка при сохранении paymentSchedule', err);
+  }
 }
 
-// Добавление нового платежа
-function saveNewPayment() {
-  if (!student.value || !newPayment.date || !newPayment.amount || !newPayment.status) return
-
-  student.value.paymentSchedule.push({
-    date: newPayment.date.toISOString().slice(0, 10),
-    amount: newPayment.amount,
-    paid: newPayment.status === 'Оплачен',
-    comment: newPayment.comment
-  })
-
-  Object.assign(newPayment, {
-    date: undefined,
-    comment: '',
-    status: '',
-    amount: null
-  })
-
-  mode.value = 'history'
-  showAddPanel.value = false
-}
 
 // Форматирование
 function formatDate(iso: string) {
@@ -456,12 +451,23 @@ onMounted(async () => {
     paymentSchedule: []
   }
 
+  // === ПОЛУЧАЕМ paymentSchedule ИЗ БД ===
+  try {
+    const response = await axios.get(`/api/students/${student.value.id}/payment-schedule`)
+    if (response.data.success && Array.isArray(response.data.paymentSchedule) && response.data.paymentSchedule.length > 0) {
+      student.value.paymentSchedule = response.data.paymentSchedule
+      return // если уже есть график — выходим
+    }
+  } catch (err) {
+    console.error('Ошибка при получении графика платежей:', err)
+  }
+
+  // === ЕСЛИ payment_schedule В БАЗЕ НЕТ — СОЗДАЁМ ===
   if (!paymentPeriod || !student.value) return
 
-  // === РАССЧЁТ ПОСЛЕ СКИДКИ И ОПЛАТ ===
   const amountDue = Math.max(discountedPrice - paidAmount, 0)
 
-  // === РАВНОМЕРНОЕ РАСПРЕДЕЛЕНИЕ ОСТАВШЕЙСЯ СУММЫ ===
+  // === РАВНОМЕРНОЕ РАСПРЕДЕЛЕНИЕ ===
   const monthlyAmounts: number[] = []
   let remaining = amountDue
   for (let i = 0; i < paymentPeriod; i++) {
@@ -470,8 +476,7 @@ onMounted(async () => {
     remaining -= avg
   }
 
-  // === СОЗДАНИЕ ПЛАТЕЖЕЙ ===
-  const schedule: ScheduleItem[] = []
+  const generatedSchedule: ScheduleItem[] = []
   let remainingPaid = paidAmount
   const startDate = new Date()
 
@@ -483,15 +488,74 @@ onMounted(async () => {
     const paid = remainingPaid >= amount
     if (paid) remainingPaid -= amount
 
-    schedule.push({
+    generatedSchedule.push({
       date: date.toISOString().split('T')[0],
       amount,
       paid
     })
   }
 
-  student.value.paymentSchedule = schedule
+  student.value.paymentSchedule = generatedSchedule
+  await savePaymentScheduleToDB()
 })
+
+
+
+const togglePaymentStatus = async (index: number) => {
+  if (!student.value) return // ❗ защита от null
+
+  // 1. Инвертируем статус
+  student.value.paymentSchedule[index].paid = !student.value.paymentSchedule[index].paid
+
+  // 2. Сохраняем на сервере
+  try {
+    await axios.put(`/api/students/${student.value.id}/payment-schedule`, {
+      paymentSchedule: student.value.paymentSchedule,
+    })
+    console.log('✅ Изменения сохранены')
+  } catch (err) {
+    console.error('Ошибка при сохранении paymentSchedule:', err)
+  }
+}
+
+
+
+function saveNewPayment() {
+  if (!student.value || !newPayment.date || !newPayment.amount || !newPayment.status) return;
+
+  student.value.paymentSchedule.push({
+    date: newPayment.date.toISOString().slice(0, 10),
+    amount: newPayment.amount,
+    paid: newPayment.status === 'Оплачен',
+    comment: newPayment.comment
+  });
+
+  Object.assign(newPayment, {
+    date: undefined,
+    comment: '',
+    status: '',
+    amount: null
+  });
+
+  mode.value = 'history';
+  showAddPanel.value = false;
+
+  savePaymentScheduleToDB(); // Сохраняем
+}
+
+async function savePaymentScheduleToBackend() {
+  if (!student.value) return
+  try {
+    await axios.put(`/api/students/${student.value.id}`, {
+      payment_schedule: student.value.paymentSchedule,
+    })
+    console.log('Платежный график обновлён')
+  } catch (err) {
+    console.error('Ошибка при сохранении платежного графика:', err)
+  }
+}
+
+
 
 </script>
 

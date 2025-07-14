@@ -186,6 +186,7 @@ router.get('/students/:id', async (req, res) => {
 
 
 
+
 router.put('/students/:id', async (req, res) => {
   const id = req.params.id;
   const {
@@ -261,6 +262,87 @@ router.post('/students/edit/:id', async (req, res) => {
     res.status(500).json({ error: 'Ошибка при обновлении' });
   }
 });
+
+// PUT /students/:id/schedule — сохранить платежный календарь
+router.put('/students/:id/schedule', async (req, res) => {
+  const { id } = req.params;
+  const { payment_schedule } = req.body;
+
+  try {
+    await pool.query(
+      'UPDATE students SET payment_schedule = $1 WHERE id = $2',
+      [payment_schedule, id]
+    );
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Ошибка при обновлении payment_schedule:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// PUT /students/:id/payment-schedule
+// ✅ Финальный вариант: PUT /students/:id/payment-schedule
+// backend/routes/students.js
+router.put('/students/:id/payment-schedule', async (req, res) => {
+  const studentId = req.params.id;
+  const paymentSchedule = req.body.paymentSchedule;
+
+  try {
+    // Удаляем старые записи
+    await pool.query('DELETE FROM payment_schedule WHERE student_id = $1', [studentId]);
+
+    // Вставляем новые записи
+    for (const payment of paymentSchedule) {
+      await pool.query(
+        `INSERT INTO payment_schedule (student_id, date, paid, amount)
+         VALUES ($1, $2, $3, $4)`,
+        [studentId, payment.date, payment.paid, payment.amount]
+      );
+    }
+
+    // 🔁 Обновляем paid_amount на основе новых данных
+    const sumResult = await pool.query(`
+      SELECT COALESCE(SUM(amount), 0) AS total_paid
+      FROM payment_schedule
+      WHERE student_id = $1 AND paid = true
+    `, [studentId]);
+
+    const paidAmount = sumResult.rows[0].total_paid;
+
+    await pool.query(`
+      UPDATE students
+      SET paid_amount = $1
+      WHERE id = $2
+    `, [paidAmount, studentId]);
+
+    res.status(200).json({ success: true, paymentSchedule });
+  } catch (error) {
+    console.error('Ошибка при обновлении графика:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при обновлении графика' });
+  }
+});
+
+router.get('/students/:id/payment-schedule', async (req, res) => {
+  const studentId = req.params.id;
+
+  try {
+    const result = await pool.query(
+      'SELECT date, paid, amount FROM payment_schedule WHERE student_id = $1 ORDER BY date',
+      [studentId]
+    );
+
+    res.json({ success: true, paymentSchedule: result.rows });
+  } catch (error) {
+    console.error('Ошибка при получении графика:', error);
+    res.status(500).json({ success: false, error: 'Ошибка при получении графика' });
+  }
+});
+
+
+
+
+
+
 
 // Получить все платежи студента
 router.get('/students/:id/payments', async (req, res) => {
