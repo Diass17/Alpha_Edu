@@ -456,6 +456,19 @@ onMounted(async () => {
     const response = await axios.get(`/api/students/${student.value.id}/payment-schedule`)
     if (response.data.success && Array.isArray(response.data.paymentSchedule) && response.data.paymentSchedule.length > 0) {
       student.value.paymentSchedule = response.data.paymentSchedule
+      // Если вся сумма уже оплачена — отмечаем все платежи как оплаченные
+      const totalRemaining = student.value.paymentSchedule
+        .filter(p => !p.paid)
+        .reduce((sum, p) => sum + p.amount, 0)
+
+      if (totalRemaining === 0) {
+        student.value.paymentSchedule = student.value.paymentSchedule.map(p => ({
+          ...p,
+          paid: true
+        }))
+        await savePaymentScheduleToDB()
+      }
+
       return // если уже есть график — выходим
     }
   } catch (err) {
