@@ -165,6 +165,7 @@ import addStudentLogo from '@/assets/logos/addstudent.png'
 import filterLogo from '@/assets/logos/filter.png'
 import arrowDownLogo from '@/assets/logos/arrow-down.png'
 import arrowUpLogo from '@/assets/logos/arrow-up.png'
+import * as XLSX from 'xlsx'
 
 const router = useRouter()
 const store = useStudentStore()
@@ -241,6 +242,8 @@ const filteredList = computed<Student[]>(() =>
     return bySearch && byCourse && byStream && byTop
   })
 )
+
+
 </script>
 
 <style scoped>

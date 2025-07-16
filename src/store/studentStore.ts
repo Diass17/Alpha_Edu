@@ -163,7 +163,7 @@ export const useStudentStore = defineStore('student', {
 
     // 📤 Экспорт в Excel
     exportToExcel() {
-      const rows = this.list.map((s) => ({
+      const rows = this.list.slice(0, 1).map((s) => ({
         ID: s.id,
         ФИО: s.full_name,
         ИИН: s.iin,
@@ -184,6 +184,6 @@ export const useStudentStore = defineStore('student', {
       XLSX.utils.book_append_sheet(wb, sheet, 'Студенты')
       const now = new Date().toISOString().split('T')[0]
       XLSX.writeFile(wb, `students_${now}.xlsx`)
-    },
+    }
   },
 })
