@@ -76,7 +76,7 @@ router.post('/students', async (req, res) => {
   console.log('Получено:', req.body);
   const {
     full_name, iin, email, phone, status, top_student,
-    funding_source, subject, total_cost, discount_percent, paid_amount,
+    funding_source, subject, total_cost, paid_amount,
     payment_period, paymentPeriod // <- на случай если с фронта camelCase
   } = req.body;
 
@@ -109,18 +109,15 @@ router.post('/students', async (req, res) => {
   try {
     const parsedPeriod = parseInt(payment_period ?? paymentPeriod, 10);
     const finalPaymentPeriod = Number.isFinite(parsedPeriod) ? parsedPeriod : 0;
-    const amount_remaining = total_cost - paid_amount;
 
-    await pool.query(
+    const result = await pool.query(
       `INSERT INTO students (
         full_name, iin, email, phone, status, top_student,
-        funding_source, subject, total_cost, discount_percent,
-        paid_amount, payment_period
+        funding_source, subject, total_cost, paid_amount, payment_period
       ) VALUES (
         $1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10,
-        $11, $12
-      )`,
+        $7, $8, $9, $10, $11
+      ) RETURNING *`,
       [
         full_name,
         iin,
@@ -131,18 +128,19 @@ router.post('/students', async (req, res) => {
         fundingSourceText,
         subject,
         total_cost || 0,
-        discount_percent || 0,
         paid_amount || 0,
-        finalPaymentPeriod // ✅ корректно вычислено
+        finalPaymentPeriod
       ]
     );
 
-    res.status(201).json({ message: 'Студент добавлен' });
+    // Возвращаем нового студента, включая вычисленное discount_percent
+    res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('Ошибка при добавлении студента:', err);
     res.status(500).json({ error: 'Ошибка при добавлении. Проверьте данные.' });
   }
 });
+
 
 
 router.post('/students/delete/:id', async (req, res) => {

@@ -15,8 +15,11 @@
         <table class="w-full text-left">
           <thead class="bg-[rgb(185,179,248)] text-sm font-semibold">
             <tr>
-              <th class="px-6 py-3 rounded-tl-lg">Данные</th>
-              <th class="px-6 py-3 rounded-tr-lg">Информация о студенте</th>
+              <th class="px-4 py-2">Дата платежа</th>
+              <th class="px-4 py-2">Комментарий</th>
+              <th class="px-4 py-2">Статус</th>
+              <th class="px-4 py-2">Сумма</th>
+              <th class="px-4 py-2 text-center">Действие</th> <!-- новая колонка -->
             </tr>
           </thead>
           <tbody class="divide-y divide-[#E6E3F1]">
@@ -195,8 +198,14 @@
                 </span>
               </td>
               <td class="px-4 py-2">{{ item.amount.toLocaleString('ru-RU') }} ₸</td>
+              <td class="px-4 py-2 text-center">
+                <button @click="() => deletePayment(i)" class="text-red-500 hover:text-red-700 font-medium">
+                  Удалить
+                </button>
+              </td>
             </tr>
           </tbody>
+
         </table>
 
         <!-- 1) Кнопка «Добавить платёж» -->
@@ -476,9 +485,23 @@ onMounted(async () => {
   }
 
   // === ЕСЛИ payment_schedule В БАЗЕ НЕТ — СОЗДАЁМ ===
-  if (!paymentPeriod || !student.value) return
+  if (!student.value) return
 
   const amountDue = Math.max(discountedPrice - paidAmount, 0)
+
+  // === ЕСЛИ СКИДКА 100% — СОЗДАЁМ 1 ОПЛАЧЕННЫЙ ПЛАТЁЖ ===
+  if (discountPercent === 100) {
+    student.value.paymentSchedule = [{
+      date: new Date().toISOString().split('T')[0],
+      amount: s.total_cost,
+      paid: true,
+      comment: 'Полная оплата (скидка 100%)'
+    }]
+    await savePaymentScheduleToDB()
+    return // выходим — не создаём график по месяцам
+  }
+
+  if (!paymentPeriod) return
 
   // === РАВНОМЕРНОЕ РАСПРЕДЕЛЕНИЕ ===
   const monthlyAmounts: number[] = []
@@ -568,7 +591,12 @@ async function savePaymentScheduleToBackend() {
   }
 }
 
+function deletePayment(index: number) {
+  if (!student.value) return
 
+  student.value.paymentSchedule.splice(index, 1)
+  savePaymentScheduleToDB()
+}
 
 </script>
 

@@ -324,7 +324,7 @@ async function confirmSave() {
     }
 
     try {
-      await studentStore.createStudent({
+      const response = await studentStore.createStudent({
         full_name: `${form.value.surname} ${form.value.firstName} ${form.value.patronymic}`.trim(),
         iin: form.value.iin,
         email: form.value.email,
@@ -334,11 +334,11 @@ async function confirmSave() {
         funding_source: form.value.financing,
         subject: form.value.subject,
         total_cost: form.value.coursePrice,
-        discount_percent: getDiscountPercent(form.value.financing),
         paid_amount: form.value.amountPaid,
         amount_remaining: amountRemaining.value,
         paymentPeriod: form.value.paymentPeriod,
-      })
+        discount_percent: 0
+      });
 
       ElMessage.success('Студент успешно добавлен')
       showSuccess.value = true
