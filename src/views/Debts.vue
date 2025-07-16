@@ -154,47 +154,53 @@ onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
 
   try {
-    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/reports/debts`)
+    const response = await axios.get('http://localhost:3000/reports/debts')
     const students = response.data
 
-    // Параллельно загружаем paymentSchedule для каждого студента
     const updatedRows = await Promise.all(
       students.map(async (student) => {
+        if (!student || !student.id) {
+          console.warn('Пропущен студент из-за отсутствия id:', student)
+          return null
+        }
+
         let status = 'Не оплачен'
         let paymentDate = '-'
 
-        // 💡 приоритет: если amount_remaining === 0 — значит всё оплачено
-        if (student.amount_remaining === 0) {
+        // Если скидка 100% или остаток = 0 — считаем как оплачено
+        if (student.discount_percent === 100 || student.amount_remaining === 0) {
           status = 'Оплачен'
-        } else {
-          // иначе пробуем получить график и проверить по нему
-          try {
-            const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/students/${student.id}/payment-schedule`)
-            const schedule = res.data.paymentSchedule
+        }
 
-            if (Array.isArray(schedule) && schedule.length > 0) {
-              const allPaid = schedule.every(item => item.paid)
-              if (allPaid) {
-                status = 'Оплачен'
-              }
+        try {
+          const res = await axios.get(`http://localhost:3000/api/students/${student.id}/payment-schedule`)
+          const schedule = res.data.paymentSchedule
 
-              const sortedByDate = schedule
-                .filter(item => item.date)
-                .sort((a, b) => new Date(a.date) - new Date(b.date))
-
-              if (sortedByDate.length > 0) {
-                const nextUnpaid = sortedByDate.find(item => !item.paid)
-                const lastPaid = [...sortedByDate].reverse().find(item => item.paid)
-
-                if (nextUnpaid) {
-                  paymentDate = new Date(nextUnpaid.date).toLocaleDateString('ru-RU')
-                } else if (lastPaid) {
-                  paymentDate = new Date(lastPaid.date).toLocaleDateString('ru-RU')
-                }
-              }
+          if (Array.isArray(schedule) && schedule.length > 0) {
+            const allPaid = schedule.every(item => item.paid)
+            if (allPaid) {
+              status = 'Оплачен'
             }
-          } catch (err) {
-            console.warn(`Не удалось получить график студента ID ${student.id}`, err)
+
+            const sortedByDate = schedule
+              .filter(item => item.date)
+              .sort((a, b) => new Date(a.date) - new Date(b.date))
+
+            const nextUnpaid = sortedByDate.find(item => !item.paid)
+            const lastPaid = [...sortedByDate].reverse().find(item => item.paid)
+
+            if (nextUnpaid) {
+              paymentDate = new Date(nextUnpaid.date).toLocaleDateString('ru-RU')
+            } else if (lastPaid) {
+              paymentDate = new Date(lastPaid.date).toLocaleDateString('ru-RU')
+            }
+          } else if (student.created_at) {
+            paymentDate = new Date(student.created_at).toLocaleDateString('ru-RU')
+          }
+        } catch (err) {
+          console.warn(`Не удалось получить график для студента ID ${student.id}`, err)
+          if (student.created_at) {
+            paymentDate = new Date(student.created_at).toLocaleDateString('ru-RU')
           }
         }
 
@@ -210,12 +216,14 @@ onMounted(async () => {
       })
     )
 
-    // 🧹 Оставляем только тех, у кого есть задолженность
-    rows.value = updatedRows.filter(row => row.amount > 0)
+    // Отфильтровываем null'ы (если student был пропущен)
+    rows.value = updatedRows.filter(Boolean)
+
   } catch (e) {
     console.error('Ошибка при загрузке задолженностей:', e)
   }
 })
+
 
 
 
@@ -239,12 +247,17 @@ function selectStatus(status) {
 }
 
 const totalPayments = computed(() =>
-  filteredRows.value.reduce((sum, row) => sum + (row.amount || 0), 0)
+  filteredRows.value.reduce((sum, row) => sum + (row.amount || 0) + (row.paidAmount || 0), 0)
 )
+
 const paidAmount = computed(() =>
   filteredRows.value.reduce((sum, row) => sum + (row.paidAmount || 0), 0)
 )
-const unpaidAmount = computed(() => totalPayments.value - paidAmount.value)
+
+const unpaidAmount = computed(() =>
+  filteredRows.value.reduce((sum, row) => sum + (row.amount || 0), 0)
+)
+
 
 const formattedPeriod = computed(() => {
   if (startDate.value && endDate.value) {

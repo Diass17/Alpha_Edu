@@ -69,8 +69,8 @@
             <el-form-item prop="status" class="flex-1">
               <el-select v-model="form.status" placeholder="Статус" size="large" clearable
                 class="w-full bg-purple-50 rounded-xl text-lg">
-                <el-option label="Студент" value="student" />
-                <el-option label="Выпускник" value="graduate" />
+                <el-option label="Студент" value="Студент" />
+                <el-option label="Выпускник" value="Выпускник" />
               </el-select>
             </el-form-item>
 

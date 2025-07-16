@@ -37,62 +37,24 @@
             <tr>
               <td class="px-6 py-2">Статус</td>
               <td class="px-6 py-2">
-                <div class="relative w-48">
-                  <button @click="toggleStatusDropdown" class="filter-select w-full flex justify-between items-center"
-                    type="button">
-                    {{ selectedStatus || 'Статус' }}
-                    <svg :class="[
-                      'w-4 h-4 ml-2 transform transition-transform duration-200',
-                      showStatusDropdown ? 'rotate-180' : ''
-                    ]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  <ul v-if="showStatusDropdown"
-                    class="absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg">
-                    <li v-for="opt in statusOptions" :key="opt" @click="selectStatus(opt)"
-                      class="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                      :class="{ 'text-[rgb(98,82,254)] font-medium': selectedStatus === opt }">
-                      {{ opt }}
-                    </li>
-                  </ul>
-                </div>
+                {{ student.status || '—' }}
               </td>
             </tr>
+
 
 
             <!-- Top Student -->
             <tr>
               <td class="px-6 py-2">Top Student</td>
               <td class="px-6 py-2">
-                <input type="checkbox" v-model="topStudent" class="h-5 w-5 text-green-500 border-gray-300 rounded" />
+                {{ student.topStudent ? 'Да' : 'Нет' }}
               </td>
             </tr>
-
             <!-- Финансирование -->
             <tr>
               <td class="px-6 py-2">Финансирование</td>
               <td class="px-6 py-2">
-                <div class="relative w-48">
-                  <button @click="toggleFinancingDropdown"
-                    class="filter-select w-full flex justify-between items-center" type="button">
-                    {{ selectedFinancing || 'Финансирование' }}
-                    <svg :class="[
-                      'w-4 h-4 ml-2 transform transition-transform duration-200',
-                      showFinancingDropdown ? 'rotate-180' : ''
-                    ]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  <ul v-if="showFinancingDropdown"
-                    class="absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg">
-                    <li v-for="opt in financingOptions" :key="opt" @click="selectFinancing(opt)"
-                      class="cursor-pointer px-4 py-2 hover:bg-gray-100"
-                      :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFinancing === opt }">
-                      {{ opt }}
-                    </li>
-                  </ul>
-                </div>
+                {{ student.funding_source || '—' }}
               </td>
             </tr>
           </tbody>
@@ -304,7 +266,10 @@ interface Student {
   discountedPrice: number
   paymentPeriod: number
   paymentSchedule: ScheduleItem[]
+  topStudent: boolean            // ✅ Добавлено
+  funding_source: string         // ✅ Добавлено
 }
+
 
 interface RouteProps { id: string }
 const props = defineProps<RouteProps>()
@@ -454,8 +419,11 @@ onMounted(async () => {
     discountPercent,
     discountedPrice,
     paymentPeriod,
-    paymentSchedule: []
+    paymentSchedule: [],
+    topStudent: s.top_student === true,
+    funding_source: s.funding_source || ''
   }
+
 
   // === ПОЛУЧАЕМ paymentSchedule ИЗ БД ===
   try {
