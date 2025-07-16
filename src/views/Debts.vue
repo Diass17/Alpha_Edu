@@ -154,7 +154,7 @@ onMounted(async () => {
   document.addEventListener('click', handleClickOutside)
 
   try {
-    const response = await axios.get('http://localhost:3000/reports/debts')
+    const response = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/reports/debts`)
     const students = response.data
 
     const updatedRows = await Promise.all(
@@ -173,7 +173,7 @@ onMounted(async () => {
         }
 
         try {
-          const res = await axios.get(`http://localhost:3000/api/students/${student.id}/payment-schedule`)
+          const res = await axios.get(`${import.meta.env.VITE_API_BASE_URL}/api/students/${student.id}/payment-schedule`)
           const schedule = res.data.paymentSchedule
 
           if (Array.isArray(schedule) && schedule.length > 0) {
