@@ -209,14 +209,55 @@ function triggerExcelInput() {
   excelInput.value?.click();
 }
 
-function handleExcelFile(event: Event) {
-  // Сюда попадёт файл после выбора
+async function handleExcelFile(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0];
-  if (file) {
-    alert('Вы выбрали файл: ' + file.name);
-    // Здесь можно добавить чтение файла через XLSX если понадобится
-  }
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    const data = e.target?.result;
+    const workbook = XLSX.read(data, { type: 'binary' });
+
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // 📥 Преобразуем лист в массив объектов
+    const json = XLSX.utils.sheet_to_json<any>(sheet);
+
+    // ✅ Для отладки — можно вывести json в консоль
+    console.log('Импортированные студенты:', json);
+
+    // Отправка каждого студента на сервер
+    for (const s of json) {
+      try {
+        // Преобразуй названия колонок Excel под нужный формат
+        await store.createStudent({
+          full_name: s['ФИО'] || '',
+          iin: s['ИИН'] || '',
+          email: s['Email'] || '',
+          phone: s['Телефон'] || '',
+          status: s['Статус'] || '',
+          top_student: s['Топ'] === 'Да',
+          funding_source: cleanFundingSource(s['Финансирование'] || ''),
+          subject: s['Курс'] || '',
+          total_cost: Number(s['Общая_стоимость']) || 0,
+          paid_amount: Number(s['Оплачено']) || 0,
+          paymentPeriod: 0, // Можно задать по умолчанию или импортировать
+          stream_id: undefined,
+          discount_percent: 0,
+          amount_remaining: 0
+        });
+      } catch (err) {
+        console.error('Ошибка при добавлении из Excel:', err);
+      }
+    }
+
+    alert('Импорт завершён');
+  };
+
+  reader.readAsBinaryString(file);
 }
+
 // Экспорт в Excel
 function onSaveExcel() {
   store.exportToExcel()
@@ -242,6 +283,7 @@ const filteredList = computed<Student[]>(() =>
     return bySearch && byCourse && byStream && byTop
   })
 )
+
 
 
 </script>

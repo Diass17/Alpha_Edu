@@ -15,11 +15,8 @@
         <table class="w-full text-left">
           <thead class="bg-[rgb(185,179,248)] text-sm font-semibold">
             <tr>
-              <th class="px-4 py-2">Дата платежа</th>
-              <th class="px-4 py-2">Комментарий</th>
-              <th class="px-4 py-2">Статус</th>
-              <th class="px-4 py-2">Сумма</th>
-              <th class="px-4 py-2 text-center">Действие</th> <!-- новая колонка -->
+              <th class="px-6 py-3 rounded-tl-lg">Данные</th>
+              <th class="px-6 py-3 rounded-tr-lg">Информация о студенте</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-[#E6E3F1]">
