@@ -37,9 +37,19 @@ router.get('/students', async (req, res) => {
     students.total_cost,
     students.discount_percent,
     students.paid_amount,
-    students.payment_period, -- добавлено поле
+    students.payment_period,
     students.stream_id,
-    streams.name AS stream
+    streams.name AS stream,
+
+    -- Добавлено: последняя дата оплаты (если была)
+    (
+      SELECT date
+      FROM payment_schedule
+      WHERE student_id = students.id AND paid = true
+      ORDER BY date DESC
+      LIMIT 1
+    ) AS last_payment_date
+
   FROM students
   LEFT JOIN streams ON students.stream_id = streams.id
 `;

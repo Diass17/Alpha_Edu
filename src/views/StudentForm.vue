@@ -115,7 +115,7 @@
               </th>
               <th class="py-3 px-6 text-right text-lg text-gray-800">
                 <el-input v-model.number="form.coursePrice" placeholder="Введите сумму" size="large"
-                  class="w-40 text-right" type="number" min="0">
+                  class="w-40 text-right" type="number" min="0" :disabled="isInternalGrant">
                   <template #suffix>₸</template>
                 </el-input>
               </th>
@@ -130,7 +130,8 @@
             <tr class="border-t">
               <td class="py-3 px-6 text-left text-lg text-gray-800">Выбор период оплаты</td>
               <td class="py-3 px-6 text-right text-lg text-gray-800">
-                <el-select v-model="form.paymentPeriod" placeholder="Выбрать" class="w-40 bg-white rounded-lg text-lg">
+                <el-select v-model="form.paymentPeriod" placeholder="Выбрать" class="w-40 bg-white rounded-lg text-lg"
+                  :disabled="isInternalGrant || isTechOrda">
                   <el-option label="Полная сумма" :value="0" />
                   <el-option label="2 месяца" :value="2" />
                   <el-option label="3 месяца" :value="3" />
@@ -144,7 +145,7 @@
               <td class="py-3 px-6 text-left text-lg text-gray-800">Сумма оплачено</td>
               <td class="py-3 px-6 text-right text-lg text-gray-800">
                 <el-input v-model.number="form.amountPaid" placeholder="Введите сумму" size="large"
-                  class="w-40 text-right" type="number" min="0">
+                  class="w-40 text-right" type="number" min="0" :disabled="isInternalGrant || isTechOrda">
                   <template #suffix>₸</template>
                 </el-input>
               </td>
@@ -193,6 +194,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, SuccessFilled } from '@element-plus/icons-vue'
 import { useStudentStore } from '@/store/studentStore'
+import type { RuleItem } from 'async-validator'
 
 const router = useRouter()
 const studentStore = useStudentStore()
@@ -249,8 +251,14 @@ const rules = {
     { required: true, message: 'Выберите статус', trigger: ['blur', 'change'] }
   ],
   coursePrice: [
-    { required: true, message: 'Введите стоимость курса', trigger: ['blur', 'change'] },
-    { type: 'number', min: 1, message: 'Цена должна быть больше 0', trigger: ['blur', 'change'] }
+    {
+      validator: (rule: RuleItem, value: number, callback: (error?: Error) => void) => {
+        if (form.value.financing === 'internal_grant') return callback()
+        if (!value || value < 1) return callback(new Error('Цена должна быть больше 0'))
+        return callback()
+      },
+      trigger: ['blur', 'change']
+    }
   ],
   paymentPeriod: [
     { required: true, message: 'Выберите период оплаты', trigger: ['blur', 'change'] }
@@ -372,6 +380,29 @@ function onSuccessContinue() {
   showSuccess.value = false
   router.push({ name: 'Students' })
 }
+
+const isInternalGrant = computed(() => form.value.financing === 'internal_grant')
+const isTechOrda = computed(() => form.value.financing === 'techorda')
+
+watch(() => form.value.financing, (financing) => {
+  if (financing === 'internal_grant') {
+    form.value.coursePrice = 0
+    form.value.amountPaid = 0
+    form.value.paymentPeriod = 0
+  } else if (financing === 'techorda') {
+    form.value.paymentPeriod = 0
+    // установка суммы оплатой равной стоимости курса
+    form.value.amountPaid = form.value.coursePrice
+  }
+})
+
+// Если цена курса меняется и выбрано TechOrda — обновляем оплачено
+watch(() => form.value.coursePrice, (newPrice) => {
+  if (form.value.financing === 'techorda') {
+    form.value.amountPaid = newPrice
+  }
+})
+
 </script>
 
 

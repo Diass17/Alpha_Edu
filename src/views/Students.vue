@@ -238,7 +238,7 @@ async function handleExcelFile(event: Event) {
           phone: s['Телефон'] || '',
           status: s['Статус'] || '',
           top_student: s['Топ'] === 'Да',
-          funding_source: cleanFundingSource(s['Финансирование'] || ''),
+          funding_source: s['Финансирование'],
           subject: s['Курс'] || '',
           total_cost: Number(s['Общая_стоимость']) || 0,
           paid_amount: Number(s['Оплачено']) || 0,

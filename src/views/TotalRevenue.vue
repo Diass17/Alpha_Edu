@@ -49,7 +49,7 @@
         </button>
 
         <div v-if="showCourseDropdown"
-           class="course-dropdown absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          class="course-dropdown absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
           <input type="text" v-model="searchCourse" placeholder="Поиск курса"
             class="w-full px-3 py-2 text-sm border-b outline-none" />
           <ul>
@@ -72,7 +72,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        <ul v-if="showFundingType" class="funding-dropdown absolute z-10 w-full mt-2 bg-white border rounded-lg shadow-md">
+        <ul v-if="showFundingType"
+          class="funding-dropdown absolute z-10 w-full mt-2 bg-white border rounded-lg shadow-md">
           <li v-for="option in fundingTypes" :key="option" @click="selectFundingType(option)"
             class="cursor-pointer px-4 py-2 hover:bg-gray-100 flex justify-between items-center">
             <span :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFundingTypes.includes(option) }">
@@ -83,8 +84,7 @@
         </ul>
       </div>
       <div class="relative">
-        <button @click="clearAllFilters"
-          class="filter-select w-full flex justify-between items-center">
+        <button @click="clearAllFilters" class="filter-select w-full flex justify-between items-center">
           Очистить фильтры
         </button>
       </div>
@@ -148,7 +148,9 @@ interface Student {
   subject: string
   course_id?: number
   created_at?: string
+  last_payment_date?: string
 }
+
 
 interface Course {
   id: number
@@ -166,22 +168,22 @@ interface RowData {
 // Переменные
 const route = useRoute()
 
-const selectedFundingTypes = ref < string[] > ([])
-const startDate = ref < Date | undefined > (undefined)
-const endDate = ref < Date | undefined > (undefined)
+const selectedFundingTypes = ref<string[]>([])
+const startDate = ref<Date | undefined>(undefined)
+const endDate = ref<Date | undefined>(undefined)
 
 const showStartPicker = ref(false)
 const showEndPicker = ref(false)
-const startPickerRef = ref < HTMLElement | null > (null)
-const endPickerRef = ref < HTMLElement | null > (null)
+const startPickerRef = ref<HTMLElement | null>(null)
+const endPickerRef = ref<HTMLElement | null>(null)
 
-const popupPosition = ref < { start: string; end: string } > ({ start: '', end: '' })
+const popupPosition = ref<{ start: string; end: string }>({ start: '', end: '' })
 
 const showCourseDropdown = ref(false)
-const selectedCourse = ref < string > ('')
-const searchCourse = ref < string > ('')
+const selectedCourse = ref<string>('')
+const searchCourse = ref<string>('')
 
-const rows = ref < RowData[] > ([])
+const rows = ref<RowData[]>([])
 
 // Курсы, отфильтрованные по поиску
 const filteredCourses = computed(() =>
@@ -231,8 +233,8 @@ onMounted(() => {
 async function fetchStudentPaymentsLikeOldVersion() {
   try {
     const [studentsRes, coursesRes] = await Promise.all([
-      axios.get < Student[] > ('/api/students'),
-      axios.get < Course[] > ('/api/courses')
+      axios.get<Student[]>('/api/students'),
+      axios.get<Course[]>('/api/courses')
     ])
 
     const courses = coursesRes.data
@@ -243,7 +245,9 @@ async function fetchStudentPaymentsLikeOldVersion() {
       )
 
       return {
-        date: new Date().toLocaleDateString('ru-RU'), // Заменить на student.created_at при наличии
+        date: student.last_payment_date
+          ? new Date(student.last_payment_date).toLocaleDateString('ru-RU')
+          : '–––',
         amount: (student.paid_amount || 0).toLocaleString('ru-RU'),
         course: courseObj?.name || student.subject || '–––',
         student: student.full_name || '',
@@ -350,6 +354,8 @@ function selectFundingType(option: string) {
     selectedFundingTypes.value.splice(index, 1)
   }
 }
+
+
 
 // Сброс фильтров
 function clearAllFilters() {

@@ -3,7 +3,7 @@
     <h2 class="text-2xl font-semibold mb-6">Профиль студента</h2>
     <div class="grid grid-cols-2 gap-4 text-lg">
       <span class="font-medium">ФИО</span>
-      <span>{{ student?.name || '—' }}</span>
+      <span>{{ student?.full_name || '—' }}</span>
 
       <span class="font-medium">ИИН</span>
       <span>{{ student?.iin || '—' }}</span>

@@ -25,24 +25,22 @@
     <!-- Панель фильтров -->
     <div v-if="filtersVisible" class="filters-box">
       <!-- Тип финансирования -->
-      <div class="relative w-56">
-        <button @click="toggleFundingDropdown" class="filter-select w-full flex justify-between items-center"
-          type="button">
-          {{ selectedFunding || 'Финансирование' }}
-          <svg :class="[
-            'w-4 h-4 ml-2 transform transition-transform duration-200',
-            showFundingDropdown ? 'rotate-180' : ''
-          ]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div class="relative w-48">
+        <button @click="toggleFundingType" class="filter-select w-full flex justify-between items-center" type="button">
+          {{ selectedFundingTypes.length ? selectedFundingTypes.join(', ') : 'Тип финансирования' }}
+          <svg
+            :class="['w-4 h-4 ml-2 transform transition-transform duration-200', showFundingType ? 'rotate-180' : '']"
+            fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-
-        <ul v-if="showFundingDropdown"
-          class="absolute z-50 mt-2 w-full bg-white border border-purple-200 rounded-lg shadow-lg">
-          <li v-for="option in fundingOptions" :key="option" @click="selectFunding(option)"
-            class="cursor-pointer px-4 py-2 hover:bg-gray-100"
-            :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFunding === option }">
-            {{ option }}
+        <ul v-if="showFundingType" class="funding-dropdown absolute z-10 w-full mt-2 bg-white border rounded-lg shadow-md">
+          <li v-for="option in fundingTypes" :key="option" @click="selectFundingType(option)"
+            class="cursor-pointer px-4 py-2 hover:bg-gray-100 flex justify-between items-center">
+            <span :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFundingTypes.includes(option) }">
+              {{ option }}
+            </span>
+            <span v-if="selectedFundingTypes.includes(option)" class="text-[rgb(98,82,254)]">✔</span>
           </li>
         </ul>
       </div>
@@ -105,51 +103,79 @@
 </template>
 
 
-<script setup>
+<script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 
+// Тип для студента
+interface Student {
+  id: number
+  name: string
+  iin: string
+  source: string
+  status: string
+  paid: number
+  remaining: number
+  debt: boolean
+}
+
+// Реактивные переменные
 const search = ref('')
 const filtersVisible = ref(false)
 
-const selectedFunding = ref('')
+const selectedFundingTypes = ref<string[]>([])
 const selectedStatus = ref('')
 const withDebt = ref(false)
-const showFundingDropdown = ref(false)
-const showStatusDropdown = ref(false)
 
+const showFundingType = ref(false)
+const showStatusDropdown = ref(false)
+const showCourseDropdown = ref(false)
+const showStartPicker = ref(false)
+const showEndPicker = ref(false)
+
+// Опции фильтров
+const fundingTypes = ['TechOrda', 'Скидка 70%', 'Скидка 30%', 'Внутренний грант', 'Полная оплата']
+const statusOptions = ['Студент', 'Выпускник']
+
+// Список студентов
+const students = ref<Student[]>([])
+
+// Методы
 const toggleFilters = () => {
   filtersVisible.value = !filtersVisible.value
 }
-const toggleFundingDropdown = () => {
-  showFundingDropdown.value = !showFundingDropdown.value
-  showStatusDropdown.value = false
+
+const toggleFundingType = () => {
+  showFundingType.value = !showFundingType.value
+  showCourseDropdown.value = false
+  showStartPicker.value = false
+  showEndPicker.value = false
 }
+
 const toggleStatusDropdown = () => {
   showStatusDropdown.value = !showStatusDropdown.value
-  showFundingDropdown.value = false
+  showFundingType.value = false
 }
-const selectFunding = (opt) => {
-  selectedFunding.value = opt
-  showFundingDropdown.value = false
-}
-const selectStatus = (opt) => {
+
+const selectStatus = (opt: string) => {
   selectedStatus.value = opt
   showStatusDropdown.value = false
 }
 
-// Опции фильтров
-const fundingOptions = ['TechOrda', 'Скидка 70%', 'Скидка 30%', 'Внутренний грант']
-const statusOptions = ['Студент', 'Выпускник']
+const selectFundingType = (option: string) => {
+  const index = selectedFundingTypes.value.indexOf(option)
+  if (index === -1) {
+    selectedFundingTypes.value.push(option)
+  } else {
+    selectedFundingTypes.value.splice(index, 1)
+  }
+}
 
-// Массив студентов
-const students = ref([])
-
-// Загрузка данных с API
+// Загрузка данных
 onMounted(async () => {
   try {
     const res = await axios.get('/api/students')
-    students.value = res.data.map(s => ({
+    students.value = res.data.map((s: any) => ({
       id: s.id,
       name: s.full_name,
       iin: s.iin,
@@ -157,27 +183,27 @@ onMounted(async () => {
       status: s.status,
       paid: s.paid_amount,
       remaining: s.amount_remaining,
-      debt: s.amount_remaining > 0   // ← вот здесь важно
+      debt: s.amount_remaining > 0
     }))
   } catch (error) {
     console.error('Ошибка при загрузке студентов:', error)
   }
 })
 
-// Фильтрация
+// Фильтрация студентов
 const filteredStudents = computed(() =>
   students.value
-    .filter(s => {
+    .filter((s) => {
       const matchesSearch = s.name.toLowerCase().includes(search.value.toLowerCase())
-      const matchesFunding = !selectedFunding.value || s.source === selectedFunding.value
+      const matchesFunding = selectedFundingTypes.value.length === 0 || selectedFundingTypes.value.includes(s.source)
       const matchesStatus = !selectedStatus.value || s.status === selectedStatus.value
       const matchesDebt = !withDebt.value || s.debt
       return matchesSearch && matchesFunding && matchesStatus && matchesDebt
     })
     .sort((a, b) => a.id - b.id)
 )
-
 </script>
+
 
 
 
