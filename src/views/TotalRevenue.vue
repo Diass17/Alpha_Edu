@@ -244,9 +244,12 @@ async function fetchStudentPaymentsLikeOldVersion() {
         c => c.id === student.course_id || c.name === student.subject
       )
 
+      // Используем либо дату последнего платежа, либо дату создания
+      const rawDate = student.last_payment_date || student.created_at || null
+
       return {
-        date: student.last_payment_date
-          ? new Date(student.last_payment_date).toLocaleDateString('ru-RU')
+        date: rawDate
+          ? new Date(rawDate).toLocaleDateString('ru-RU')
           : '–––',
         amount: (student.paid_amount || 0).toLocaleString('ru-RU'),
         course: courseObj?.name || student.subject || '–––',
@@ -254,6 +257,7 @@ async function fetchStudentPaymentsLikeOldVersion() {
         payment: student.funding_source || ''
       }
     })
+
   } catch (err) {
     console.error('Ошибка при загрузке студентов или курсов:', err)
   }

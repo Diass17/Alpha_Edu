@@ -42,7 +42,7 @@ app.use('/api/courses', coursesRouter);
 const streamStudentRoutes = require('./routes/stream_students')
 app.use('/api/stream-students', streamStudentRoutes);
 
-app.use('/api', reportsRoutes);
+app.use('/reports', reportsRoutes);
 app.use('/api/student-payments', studentPaymentsRoute)
 
 

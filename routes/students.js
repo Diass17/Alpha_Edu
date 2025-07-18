@@ -39,6 +39,7 @@ router.get('/students', async (req, res) => {
     students.paid_amount,
     students.payment_period,
     students.stream_id,
+    students.created_at,
     streams.name AS stream,
 
     -- Добавлено: последняя дата оплаты (если была)
