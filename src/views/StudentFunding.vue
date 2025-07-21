@@ -1,6 +1,14 @@
 <template>
   <div class="p-6 font-inter">
-    <h2 class="text-2xl font-bold mb-6">Финансирование студентов</h2>
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold mb-6">Финансирование студентов</h2>
+
+      <!-- Поисковик -->
+      <div class="search-wrapper">
+        <img src="@/assets/logos/search.png" class="search-icon" />
+        <input v-model="search" type="text" placeholder="Поиск" class="search-input" />
+      </div>
+    </div>
 
     <!-- Кнопки фильтрации вкладок -->
     <div class="flex space-x-4 bg-[#F1EFFF] p-3 rounded-lg mb-4">
@@ -91,7 +99,7 @@
             <th class="px-4 py-2">Тип финансирования</th>
             <th class="px-4 py-2">Кол-во студентов</th>
             <th class="px-4 py-2">Покрытие (%)</th>
-            <th class="px-4 py-2">Общая сумма покрытия (тг)</th>
+            <th class="px-4 py-2">Общая сумма скидки (тг)</th>
             <th class="px-4 py-2">Всего оплачено студентами (тг)</th>
           </tr>
         </thead>
@@ -137,6 +145,8 @@ const showFundingType = ref(false)
 
 const students = ref([])
 
+const search = ref('')
+
 onMounted(async () => {
   try {
     const res = await axios.get('/api/students')
@@ -144,7 +154,7 @@ onMounted(async () => {
     students.value = res.data.map(s => {
       const total = s.total_cost || 0
 
-      // Определяем процент покрытия в виде числа
+      // Определяем процент покрытия
       let percentNumber = 0
       let percentLabel = '0%'
 
@@ -159,12 +169,15 @@ onMounted(async () => {
         percentLabel = '30%'
       } else if (s.funding_source === 'Полная оплата') {
         percentNumber = 0
-        percentLabel = '-' // или '0%' если хочешь отображать
+        percentLabel = '-'
       }
 
-      // Расчёты
       const covered = Math.round(total * percentNumber / 100)
-      const paidByStudent = total - covered
+
+      // 👇 Используй реальное значение paid_amount, если оно есть
+      const paidByStudent = typeof s.paid_amount === 'number'
+        ? s.paid_amount
+        : total - covered
 
       return {
         name: s.full_name,
@@ -322,6 +335,30 @@ function downloadExcel() {
   XLSX.utils.book_append_sheet(wb, ws, 'Финансирование')
   XLSX.writeFile(wb, 'Финансирование.xlsx')
 }
+
+const filteredRows = computed(() => {
+  const endPlusOne = endDate.value
+    ? new Date(endDate.value.getFullYear(), endDate.value.getMonth(), endDate.value.getDate() + 1)
+    : null
+
+  return rows.value.filter(row => {
+    const date = new Date(row.date.split('.').reverse().join('-'))
+
+    const inRange =
+      (!startDate.value || date >= startDate.value) &&
+      (!endPlusOne || date < endPlusOne)
+
+    const courseMatch = !selectedCourse.value || row.course === selectedCourse.value
+    const fundingMatch =
+      selectedFundingTypes.value.length === 0 ||
+      selectedFundingTypes.value.includes(row.payment)
+
+    const searchMatch = row.student.toLowerCase().includes(search.value.toLowerCase())
+
+    return inRange && courseMatch && fundingMatch && searchMatch
+  })
+})
+
 </script>
 
 <!-- Styles -->
@@ -374,5 +411,29 @@ function downloadExcel() {
   gap: 16px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 8px;
+  padding: 6px 12px;
+  border: 1px solid #e0d7ff;
+  width: 250px;
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  color: #121926;
 }
 </style>

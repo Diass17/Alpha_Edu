@@ -157,11 +157,6 @@
                 </span>
               </td>
               <td class="px-4 py-2">{{ item.amount.toLocaleString('ru-RU') }} ₸</td>
-              <td class="px-4 py-2 text-center">
-                <button @click="() => deletePayment(i)" class="text-red-500 hover:text-red-700 font-medium">
-                  Удалить
-                </button>
-              </td>
             </tr>
           </tbody>
 
@@ -556,12 +551,6 @@ async function savePaymentScheduleToBackend() {
   }
 }
 
-function deletePayment(index: number) {
-  if (!student.value) return
-
-  student.value.paymentSchedule.splice(index, 1)
-  savePaymentScheduleToDB()
-}
 
 </script>
 

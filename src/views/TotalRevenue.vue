@@ -1,6 +1,16 @@
 <template>
   <div class="p-6 font-inter">
-    <h2 class="text-2xl font-bold mb-6">Общая выручка</h2>
+    <!-- Заголовок + Поисковик на одной линии -->
+    <div class="flex items-center justify-between mb-6">
+      <h2 class="text-2xl font-bold">Общая выручка</h2>
+
+      <!-- Поисковик -->
+      <div class="search-wrapper">
+        <img src="@/assets/logos/search.png" class="search-icon" />
+        <input v-model="search" type="text" placeholder="Поиск" class="search-input" />
+      </div>
+    </div>
+
 
     <!-- Кнопки фильтрации вкладок -->
     <div class="flex space-x-4 bg-[#F1EFFF] p-3 rounded-lg mb-4">
@@ -185,6 +195,9 @@ const searchCourse = ref<string>('')
 
 const rows = ref<RowData[]>([])
 
+const search = ref('')
+
+
 // Курсы, отфильтрованные по поиску
 const filteredCourses = computed(() =>
   Array.from(new Set(rows.value.map(r => r.course))).filter(course =>
@@ -315,9 +328,12 @@ const filteredRows = computed(() => {
       selectedFundingTypes.value.length === 0 ||
       selectedFundingTypes.value.includes(row.payment)
 
-    return inRange && courseMatch && fundingMatch
+    const searchMatch = row.student.toLowerCase().includes(search.value.toLowerCase())
+
+    return inRange && courseMatch && fundingMatch && searchMatch
   })
 })
+
 
 // Общая сумма
 const totalAmount = computed(() =>
@@ -480,5 +496,29 @@ function clearAllFilters() {
   gap: 16px;
   align-items: center;
   flex-wrap: wrap;
+}
+
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  background-color: white;
+  border-radius: 8px;
+  padding: 6px 12px;
+  border: 1px solid #e0d7ff;
+  width: 250px;
+}
+
+.search-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 8px;
+}
+
+.search-input {
+  border: none;
+  outline: none;
+  width: 100%;
+  font-size: 14px;
+  color: #121926;
 }
 </style>

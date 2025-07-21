@@ -4,14 +4,8 @@
     <div class="flex justify-between items-center">
       <h1 class="text-2xl font-bold">Список студентов</h1>
       <div class="relative bg-[#F1EFFF] w-1/4">
-        <el-input
-          v-model="searchQuery"
-          placeholder="Поиск"
-          clearable
-          class="w-full bg-[#F1EFFF] borderrounded-xl"
-          @clear="applyFilters"
-          @keyup.enter="applyFilters"
-        >
+        <el-input v-model="searchQuery" placeholder="Поиск" clearable class="w-full bg-[#F1EFFF] borderrounded-xl"
+          @clear="applyFilters" @keyup.enter="applyFilters">
           <template #prefix>
             <Search class="text-purple-400" />
           </template>
@@ -21,101 +15,53 @@
 
     <!-- Кнопки Добавить / Фильтр / Сохранить в Excel -->
     <div class="mt-4 flex items-center space-x-2 bg-[#F1EFFF] p-1 ">
-      <el-button
-        class="flex items-center text-purple-600 bg-white border border-purple-200 hover:bg-purple-100 "
-        size="medium"
-        @click="onAddStudent"
-      >
+      <el-button class="flex items-center text-purple-600 bg-white border border-purple-200 hover:bg-purple-100 "
+        size="medium" @click="onAddStudent">
         <img :src="addStudentLogo" alt="Добавить" class="w-5 h-5 mr-2" />
         Добавить студента
       </el-button>
-      <el-button
-        :class="[
-          'flex items-center  text-purple-600 hover:bg-purple-100',
-          showFilter
-            ? 'bg-purple-500 border border-purple-500 text-white'
-            : 'bg-white border border-purple-200'
-        ]"
-        size="medium"
-        @click="showFilter = !showFilter"
-      >
+      <el-button :class="[
+        'flex items-center  text-purple-600 hover:bg-purple-100',
+        showFilter
+          ? 'bg-purple-500 border border-purple-500 text-white'
+          : 'bg-white border border-purple-200'
+      ]" size="medium" @click="showFilter = !showFilter">
         <img :src="filterLogo" alt="Фильтр" class="w-5 h-5 mr-2" />
         Фильтр
       </el-button>
-    
-      <input
-        type="file"
-        ref="excelInput"
-        accept=".xlsx,.xls"
-        style="display: none"
-        @change="handleExcelFile"
-      />
 
-      <el-button
-        class="flex items-center text-purple-600 bg-white border border-purple-200 hover:bg-purple-100"
-        size="medium"
-        @click="triggerExcelInput"
-      >
+      <input type="file" ref="excelInput" accept=".xlsx,.xls" style="display: none" @change="handleExcelFile" />
+
+      <el-button class="flex items-center text-purple-600 bg-white border border-purple-200 hover:bg-purple-100"
+        size="medium" @click="triggerExcelInput">
         <img :src="arrowUpLogo" alt="Импорт" class="w-5 h-5 mr-2" />
         Загрузить из файла
       </el-button>
 
-      <el-button
-        class="flex items-center text-purple-600 bg-white border border-purple-200 hover:bg-purple-100 "
-        size="medium"
-        @click="onSaveExcel"
-        >
+      <el-button class="flex items-center text-purple-600 bg-white border border-purple-200 hover:bg-purple-100 "
+        size="medium" @click="onSaveExcel">
         <img :src="arrowDownLogo" alt="Экспорт" class="w-5 h-5 mr-2" />
         Скачать шаблон
       </el-button>
     </div>
 
     <!-- Панель фильтров -->
-    <el-card
-      v-if="showFilter"
-      class="mt-4 bg-purple-50 border border-purple-200 rounded-xl"
-      shadow="never"
-    >
+    <el-card v-if="showFilter" class="mt-4 bg-purple-50 border border-purple-200 rounded-xl" shadow="never">
       <div class="flex flex-wrap gap-4 items-center">
         <div>
-          <el-select
-            v-model="filter.course"
-            placeholder="Выбрать курс"
-            clearable
-            class="w-48"
-          >
-            <el-option
-              v-for="c in courses"
-              :key="c"
-              :label="c"
-              :value="c"
-            />
+          <el-select v-model="filter.course" placeholder="Выбрать курс" clearable class="w-48">
+            <el-option v-for="c in courses" :key="c" :label="c" :value="c" />
           </el-select>
         </div>
         <div>
-          <el-select
-            v-model="filter.stream"
-            placeholder="Выбрать поток"
-            clearable
-            class="w-48"
-          >
-            <el-option
-              v-for="s in streams"
-              :key="s"
-              :label="s"
-              :value="s"
-            />
+          <el-select v-model="filter.stream" placeholder="Выбрать поток" clearable class="w-48">
+            <el-option v-for="s in streams" :key="s" :label="s" :value="s" />
           </el-select>
         </div>
         <el-checkbox v-model="filter.topStudent">
           Top Student
         </el-checkbox>
-        <el-button
-          type="primary"
-          @click="onResetFilters"
-          size="small"
-          class="rounded-xl"
-        >
+        <el-button type="primary" @click="onResetFilters" size="small" class="rounded-xl">
           Сбросить
         </el-button>
       </div>
@@ -134,12 +80,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr
-            v-for="(s, idx) in filteredList"
-            :key="s.id"
-            class="cursor-pointer hover:bg-gray-50 even:bg-purple-50"
-            @click="goToProfile(s.id)"
-          >
+          <tr v-for="(s, idx) in filteredList" :key="s.id" class="cursor-pointer hover:bg-gray-50 even:bg-purple-50"
+            @click="goToProfile(s.id)">
             <td class="px-6 py-6">
               <span class="inline-flex items-center justify-center w-6 h-6 bg-purple-100 text-purple-600 rounded-md">
                 {{ idx + 1 }}
@@ -172,7 +114,7 @@ const store = useStudentStore()
 
 // Поиск и фильтры
 const searchQuery = ref('')
-const showFilter  = ref(false)
+const showFilter = ref(false)
 const filter = ref({
   course: '' as string,
   stream: '' as string,
@@ -210,53 +152,74 @@ function triggerExcelInput() {
 }
 
 async function handleExcelFile(event: Event) {
-  const file = (event.target as HTMLInputElement).files?.[0];
+  const fileInput = event.target as HTMLInputElement;
+  const file = fileInput.files?.[0];
   if (!file) return;
 
   const reader = new FileReader();
+
   reader.onload = async (e) => {
-    const data = e.target?.result;
-    const workbook = XLSX.read(data, { type: 'binary' });
+    try {
+      const data = e.target?.result;
+      if (!data) throw new Error('Не удалось прочитать файл');
 
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
+      const workbook = XLSX.read(data, { type: 'binary' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const students = XLSX.utils.sheet_to_json<any>(sheet);
 
-    // 📥 Преобразуем лист в массив объектов
-    const json = XLSX.utils.sheet_to_json<any>(sheet);
+      console.log('Импортированные студенты:', students);
 
-    // ✅ Для отладки — можно вывести json в консоль
-    console.log('Импортированные студенты:', json);
+      for (const s of students) {
+        try {
+          let rawFunding = s['Финансирование']?.toString().trim().toLowerCase() || '';
+          let funding_source: string;
 
-    // Отправка каждого студента на сервер
-    for (const s of json) {
-      try {
-        // Преобразуй названия колонок Excel под нужный формат
-        await store.createStudent({
-          full_name: s['ФИО'] || '',
-          iin: s['ИИН'] || '',
-          email: s['Email'] || '',
-          phone: s['Телефон'] || '',
-          status: s['Статус'] || '',
-          top_student: s['Топ'] === 'Да',
-          funding_source: s['Финансирование'],
-          subject: s['Курс'] || '',
-          total_cost: Number(s['Общая_стоимость']) || 0,
-          paid_amount: Number(s['Оплачено']) || 0,
-          paymentPeriod: 0, // Можно задать по умолчанию или импортировать
-          stream_id: undefined,
-          discount_percent: 0,
-          amount_remaining: 0
-        });
-      } catch (err) {
-        console.error('Ошибка при добавлении из Excel:', err);
+          if (rawFunding.includes('30')) {
+            funding_source = 'discount_30';
+          } else if (rawFunding.includes('70')) {
+            funding_source = 'discount_70';
+          } else if (rawFunding.includes('techorda')) {
+            funding_source = 'techorda';
+          } else if (rawFunding.includes('грант')) {
+            funding_source = 'internal_grant';
+          } else if (rawFunding.includes('полная')) {
+            funding_source = 'full';
+          } else {
+            alert(`⛔️ Неверный формат финансирования у студента "${s['ФИО']}": "${s['Финансирование']}"`);
+            continue;
+          }
+
+          await store.createStudent({
+            full_name: s['ФИО'] || '',
+            iin: s['ИИН'] || '',
+            email: s['Email'] || '',
+            phone: s['Телефон'] || '',
+            status: s['Статус'] || '',
+            top_student: s['Топ']?.toString().toLowerCase() === 'да',
+            funding_source,
+            subject: s['Курс'] || '',
+            total_cost: Number(s['Общая_стоимость']) || 0,
+            paid_amount: Number(s['Оплачено']) || 0,
+            discount_percent: Number(s['Скидка']) || 0,
+            amount_remaining: 0,
+            paymentPeriod: Number(s['Период_оплаты']) || 0,
+            stream_id: undefined,
+          });
+        } catch (err) {
+          console.error(`Ошибка при добавлении студента "${s['ФИО']}"`, err);
+        }
       }
-    }
 
-    alert('Импорт завершён');
+      alert('✅ Импорт завершён');
+    } catch (err) {
+      console.error('Ошибка при обработке Excel-файла:', err);
+      alert('❌ Ошибка при импорте файла');
+    }
   };
 
   reader.readAsBinaryString(file);
 }
+
 
 // Экспорт в Excel
 function onSaveExcel() {
@@ -264,7 +227,7 @@ function onSaveExcel() {
 }
 
 // Фильтрация и поиск
-function applyFilters() {}
+function applyFilters() { }
 function onResetFilters() {
   filter.value = { course: '', stream: '', topStudent: false }
   searchQuery.value = ''

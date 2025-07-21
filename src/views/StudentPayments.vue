@@ -72,6 +72,11 @@
         <input type="checkbox" v-model="withDebt" />
         Только с долгами
       </label>
+      <div class="relative">
+        <button @click="clearAllFilters" class="filter-select w-full flex justify-between items-center">
+          Очистить фильтры
+        </button>
+      </div>
     </div>
 
     <!-- Таблица -->
@@ -104,7 +109,7 @@
 
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted ,  onUnmounted } from 'vue'
 import axios from 'axios'
 
 // Тип для студента
@@ -173,6 +178,7 @@ const selectFundingType = (option: string) => {
 
 // Загрузка данных
 onMounted(async () => {
+  document.addEventListener('click', handleClickOutside)
   try {
     const res = await axios.get('/api/students')
     students.value = res.data.map((s: any) => ({
@@ -202,6 +208,52 @@ const filteredStudents = computed(() =>
     })
     .sort((a, b) => a.id - b.id)
 )
+
+function clearAllFilters() {
+  selectedFundingTypes.value = []
+  selectedStatus.value = ''
+  withDebt.value = false
+  showCourseDropdown.value = false
+  showFundingType.value = false
+}
+
+const startPickerRef = ref<HTMLElement | null>(null)
+const endPickerRef = ref<HTMLElement | null>(null)
+
+function handleClickOutside(e: MouseEvent) {
+  const target = e.target as HTMLElement
+
+  // Выпадающий список "Тип финансирования"
+  const fundingDropdown = document.querySelector('.funding-dropdown')
+  if (showFundingType.value && fundingDropdown && !fundingDropdown.contains(target) && !target.closest('.filter-select')) {
+    showFundingType.value = false
+  }
+
+  // Выпадающий список "Статус"
+  const statusDropdown = document.querySelector('.status-dropdown') // можно добавить класс для надёжности
+  if (showStatusDropdown.value && !target.closest('.filter-select')) {
+    showStatusDropdown.value = false
+  }
+
+  // Пример: если есть календарь (ты упомянул startPicker / endPicker, но они не используются сейчас)
+  if (startPickerRef.value && !startPickerRef.value.contains(target) && !target.closest('.start-picker-btn')) {
+    showStartPicker.value = false
+  }
+  if (endPickerRef.value && !endPickerRef.value.contains(target) && !target.closest('.end-picker-btn')) {
+    showEndPicker.value = false
+  }
+
+  // dropdown "Курс" — если используешь
+  const courseDropdown = document.querySelector('.course-dropdown')
+  if (showCourseDropdown.value && courseDropdown && !courseDropdown.contains(target) && !target.closest('.filter-select')) {
+    showCourseDropdown.value = false
+  }
+}
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
 </script>
 
 

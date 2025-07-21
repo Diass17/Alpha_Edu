@@ -85,6 +85,8 @@ router.get('/streams', async (req, res) => {
 
 router.post('/students', async (req, res) => {
   console.log('Получено:', req.body);
+  const student = req.body;
+  console.log('Отправляем:', student);
   const {
     full_name, iin, email, phone, status, top_student,
     funding_source, subject, total_cost, paid_amount,
@@ -98,18 +100,23 @@ router.post('/students', async (req, res) => {
   let fundingSourceText;
 
   switch (funding_source) {
+    case 'TechOrda':
     case 'techorda':
       fundingSourceText = 'TechOrda';
       break;
+    case 'Внутренний грант':
     case 'internal_grant':
       fundingSourceText = 'Внутренний грант';
       break;
+    case 'Полная оплата':
     case 'full':
       fundingSourceText = 'Полная оплата';
       break;
+    case 'Скидка 30%':
     case 'discount_30':
       fundingSourceText = 'Скидка 30%';
       break;
+    case 'Скидка 70%':
     case 'discount_70':
       fundingSourceText = 'Скидка 70%';
       break;
@@ -171,12 +178,17 @@ router.get('/students/:id', async (req, res) => {
 
   try {
     const studentRes = await pool.query(`
-      SELECT id, full_name, iin, email, phone, status, top_student,
-           funding_source, subject, total_cost, discount_percent,
-           paid_amount, amount_remaining, payment_period
-      FROM students
-      WHERE id = $1
+      SELECT s.id, s.full_name, s.iin, s.email, s.phone, s.status, s.top_student,
+           s.funding_source, s.subject, s.total_cost, s.discount_percent,
+           s.payment_period, s.stream_id,
+           COALESCE(SUM(ps.amount) FILTER (WHERE ps.paid = true), 0) AS paid_amount,
+           s.total_cost - COALESCE(SUM(ps.amount) FILTER (WHERE ps.paid = true), 0) AS amount_remaining
+      FROM students s
+      LEFT JOIN payment_schedule ps ON s.id = ps.student_id
+      WHERE s.id = $1
+      GROUP BY s.id
     `, [id]);
+
 
     const student = studentRes.rows[0];
     if (!student) return res.status(404).json({ error: 'Студент не найден' });
