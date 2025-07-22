@@ -212,7 +212,7 @@ router.put('/students/:id', async (req, res) => {
   const id = req.params.id;
   const {
     full_name, iin, email, phone, status, top_student,
-    funding_source, subject, total_cost, discount_percent,
+    funding_source, subject, total_cost,
     paid_amount, payment_period
   } = req.body;
 
@@ -228,16 +228,16 @@ router.put('/students/:id', async (req, res) => {
     funding_source = $7,
     subject = $8,
     total_cost = $9,
-    discount_percent = $10,
-    paid_amount = $11,
-    payment_period = $12
-  WHERE id = $13`,
+    paid_amount = $10,
+    payment_period = $11
+  WHERE id = $12`,
       [
         full_name, iin, email, phone, status, top_student,
-        funding_source, subject, total_cost, discount_percent,
+        funding_source, subject, total_cost,
         paid_amount, payment_period, id
       ]
     );
+
 
 
     res.status(200).json({ message: 'Студент обновлён' });

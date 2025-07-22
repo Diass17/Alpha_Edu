@@ -1,10 +1,8 @@
 <template>
   <div class="p-6 font-inter">
-    <!-- Заголовок + Поисковик на одной линии -->
     <div class="flex items-center justify-between mb-6">
       <h2 class="text-2xl font-bold">Общая выручка</h2>
 
-      <!-- Поисковик -->
       <div class="search-wrapper">
         <img src="@/assets/logos/search.png" class="search-icon" />
         <input v-model="search" type="text" placeholder="Поиск" class="search-input" />
@@ -12,7 +10,6 @@
     </div>
 
 
-    <!-- Кнопки фильтрации вкладок -->
     <div class="flex space-x-4 bg-[#F1EFFF] p-3 rounded-lg mb-4">
       <router-link to="/finance/reports/total-revenue" class="tab-button"
         :class="{ 'tab-button-active': route.path === '/finance/reports/total-revenue' }">Общая выручка</router-link>
@@ -22,7 +19,6 @@
 
     <!-- Фильтры -->
     <div class="filters-wrapper relative flex flex-wrap gap-3 mb-6">
-      <!-- Начало периода -->
       <div class="relative">
         <button @click="toggleStartPicker" class="filter-select w-48 start-picker-btn">
           {{ startDate ? formatDate(startDate) : 'Начало периода' }}
@@ -34,7 +30,6 @@
         </teleport>
       </div>
 
-      <!-- Конец периода -->
       <div class="relative">
         <button @click="toggleEndPicker" class="filter-select w-48 end-picker-btn">
           {{ endDate ? formatDate(endDate) : 'Конец периода' }}
@@ -46,7 +41,6 @@
         </teleport>
       </div>
 
-      <!-- Курс -->
       <div class="relative w-48">
         <button @click="toggleCourseDropdown" class="filter-select w-full flex justify-between items-center"
           type="button">
@@ -72,7 +66,6 @@
         </div>
       </div>
 
-      <!-- Тип финансирования -->
       <div class="relative w-48">
         <button @click="toggleFundingType" class="filter-select w-full flex justify-between items-center" type="button">
           {{ selectedFundingTypes.length ? selectedFundingTypes.join(', ') : 'Тип финансирования' }}
@@ -100,7 +93,6 @@
       </div>
     </div>
 
-    <!-- Таблица -->
     <table class="w-full border bg-white border-purple-200 rounded-lg overflow-hidden text-left">
       <thead class="bg-[#ECE9FF] text-sm font-semibold">
         <tr>
@@ -122,7 +114,6 @@
       </tbody>
     </table>
 
-    <!-- Summary Box -->
     <div class="mt-6 w-full rounded-xl overflow-hidden border border-[#E0D7FF]">
       <div class="bg-[#ECE9FF] px-6 py-4 text-sm font-semibold text-black">Период {{ formattedPeriod }}</div>
       <div class="bg-white px-6 py-4 text-sm flex justify-between items-center">
@@ -135,7 +126,6 @@
       </div>
     </div>
 
-    <!-- Save Button -->
     <div class="mt-4 flex justify-end">
       <button @click="downloadExcel" class="download-btn">Сохранить в Excel</button>
     </div>
@@ -149,7 +139,6 @@ import axios from 'axios'
 import Datepicker from 'vue3-datepicker'
 import * as XLSX from 'xlsx'
 
-// Типы данных
 interface Student {
   id: number
   full_name: string
@@ -175,7 +164,6 @@ interface RowData {
   payment: string
 }
 
-// Переменные
 const route = useRoute()
 
 const selectedFundingTypes = ref<string[]>([])
@@ -280,23 +268,19 @@ async function fetchStudentPaymentsLikeOldVersion() {
 function handleClickOutside(e: MouseEvent) {
   const target = e.target as HTMLElement
 
-  // Календарь "Начало"
   if (!startPickerRef.value?.contains(target) && !target.closest('.start-picker-btn')) {
     showStartPicker.value = false
   }
 
-  // Календарь "Конец"
   if (!endPickerRef.value?.contains(target) && !target.closest('.end-picker-btn')) {
     showEndPicker.value = false
   }
 
-  // Выпадающий список курсов
   const courseDropdown = document.querySelector('.course-dropdown')
   if (showCourseDropdown.value && courseDropdown && !courseDropdown.contains(target) && !target.closest('.filter-select')) {
     showCourseDropdown.value = false
   }
 
-  // Выпадающий список типов финансирования
   const fundingDropdown = document.querySelector('.funding-dropdown')
   if (showFundingType.value && fundingDropdown && !fundingDropdown.contains(target) && !target.closest('.filter-select')) {
     showFundingType.value = false
@@ -390,7 +374,6 @@ function clearAllFilters() {
 
 
 
-<!-- Styles-->
 <style scoped>
 .tab-button,
 .tab-button-active {

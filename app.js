@@ -14,7 +14,6 @@ const studentPaymentsRoute = require('./routes/studentPayments')
 dotenv.config();
 const app = express();
 
-// CORS
 app.use(cors({
   origin: ['http://localhost:5173', 'https://alphaeducation.vercel.app'],
   credentials: true
@@ -22,7 +21,7 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session
+
 app.use(session({
   secret: 'alphaSecretKey',
   resave: false,
@@ -61,10 +60,10 @@ const swaggerOptions = {
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// 👉 Статика из Vite
+
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// 🔁 SPA fallback
+
 app.use((req, res, next) => {
   const isApiRequest = req.originalUrl.startsWith('/api');
   const hasFileExtension = /\.[a-zA-Z0-9]+$/.test(req.originalUrl);
@@ -82,7 +81,6 @@ app.get('/api/streams', (req, res) => {
 
 
 
-// Запуск
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server started on http://localhost:${PORT}`);

@@ -112,7 +112,6 @@ import * as XLSX from 'xlsx'
 const router = useRouter()
 const store = useStudentStore()
 
-// Поиск и фильтры
 const searchQuery = ref('')
 const showFilter = ref(false)
 const filter = ref({
@@ -131,12 +130,10 @@ const courses = [
 ]
 const streams = ['A1', 'B2', 'C3', 'D4']
 
-// Загрузка данных
 onMounted(async () => {
   await store.fetchStudents()
 })
 
-// Навигация
 function onAddStudent() {
   router.push({ name: 'NewStudent' })
 }
@@ -147,7 +144,6 @@ function goToProfile(id: number) {
 const excelInput = ref<HTMLInputElement | null>(null);
 
 function triggerExcelInput() {
-  // Открыть окно выбора файла
   excelInput.value?.click();
 }
 
