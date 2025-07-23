@@ -163,12 +163,11 @@ export const useStudentStore = defineStore('student', {
 
     // 📤 Экспорт в Excel
     exportToExcel() {
-      if (this.list.length === 0) return
+      if (this.list.length === 0) return;
 
-      const s = this.list[0] // первый студент
+      const s = this.list[0]; // берём первого студента
 
-      const rows = [{
-        ID: s.id,
+      const row = {
         ФИО: s.full_name,
         ИИН: s.iin,
         Email: s.email,
@@ -182,13 +181,14 @@ export const useStudentStore = defineStore('student', {
         Оплачено: s.paid_amount,
         Осталось: s.total_cost - s.paid_amount,
         Период_оплаты: s.payment_period,
-      }]
+      };
 
-      const sheet = XLSX.utils.json_to_sheet(rows)
-      const wb = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(wb, sheet, 'Студенты')
-      XLSX.writeFile(wb, `student_${s.full_name}.xlsx`)
+      const sheet = XLSX.utils.json_to_sheet([row]);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, sheet, 'Студент');
+      XLSX.writeFile(wb, `студент_${s.full_name}.xlsx`);
     }
+
 
   },
 })

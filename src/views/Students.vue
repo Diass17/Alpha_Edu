@@ -155,6 +155,25 @@ async function handleExcelFile(event: Event) {
   const reader = new FileReader();
 
   reader.onload = async (e) => {
+    function normalizePhone(phone: any) {
+      if (!phone) return '';
+      let digits = String(phone).replace(/[^\d]/g, '');
+
+      // Если начинается на 8 и длина 11 — заменим 8 на 7 (для Казахстана)
+      if (digits.length === 11 && digits.startsWith('8')) {
+        digits = '7' + digits.slice(1);
+      }
+
+      // Если начинается на 7 и длина 11 — всё ок
+      // Если длина 10 (без кода страны), добавим 7
+      if (digits.length === 10) {
+        digits = '7' + digits;
+      }
+
+      return '+' + digits;
+    }
+
+
     try {
       const data = e.target?.result;
       if (!data) throw new Error('Не удалось прочитать файл');
@@ -163,13 +182,37 @@ async function handleExcelFile(event: Event) {
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
       const students = XLSX.utils.sheet_to_json<any>(sheet);
 
-      console.log('Импортированные студенты:', students);
+      let successCount = 0;
+      let failCount = 0;
+      let errorMessages: string[] = [];
 
       for (const s of students) {
         try {
-          let rawFunding = s['Финансирование']?.toString().trim().toLowerCase() || '';
-          let funding_source: string;
+          const fullName = s['ФИО'] || '';
+          const iin = (s['ИИН'] || '').toString().trim();
+          const email = (s['Email'] || '').toString().trim();
+          const status = (s['Статус'] || '').toString().trim();
+          const topRaw = (s['Топ'] || '').toString().trim().toLowerCase();
+          const rawFunding = (s['Финансирование'] || '').toString().trim().toLowerCase();
 
+          // 🔒 Валидации
+          if (!/^\d{12}$/.test(iin)) {
+            throw new Error('ИИН должен состоять ровно из 12 цифр');
+          }
+
+          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            throw new Error('Некорректный Email');
+          }
+
+          if (status !== 'Студент' && status !== 'Выпускник') {
+            throw new Error('Статус должен быть "Студент" или "Выпускник"');
+          }
+
+          if (topRaw !== 'да' && topRaw !== 'нет') {
+            throw new Error('Поле "Топ" должно быть "Да" или "Нет"');
+          }
+
+          let funding_source: string;
           if (rawFunding.includes('30')) {
             funding_source = 'discount_30';
           } else if (rawFunding.includes('70')) {
@@ -181,17 +224,16 @@ async function handleExcelFile(event: Event) {
           } else if (rawFunding.includes('полная')) {
             funding_source = 'full';
           } else {
-            alert(`⛔️ Неверный формат финансирования у студента "${s['ФИО']}": "${s['Финансирование']}"`);
-            continue;
+            throw new Error(`Неверный формат финансирования: "${s['Финансирование']}"`);
           }
 
           await store.createStudent({
-            full_name: s['ФИО'] || '',
-            iin: s['ИИН'] || '',
-            email: s['Email'] || '',
-            phone: s['Телефон'] || '',
-            status: s['Статус'] || '',
-            top_student: s['Топ']?.toString().toLowerCase() === 'да',
+            full_name: fullName,
+            iin,
+            email,
+            phone: normalizePhone(s['Телефон'] || ''),
+            status,
+            top_student: topRaw === 'да',
             funding_source,
             subject: s['Курс'] || '',
             total_cost: Number(s['Общая_стоимость']) || 0,
@@ -201,20 +243,31 @@ async function handleExcelFile(event: Event) {
             paymentPeriod: Number(s['Период_оплаты']) || 0,
             stream_id: undefined,
           });
-        } catch (err) {
-          console.error(`Ошибка при добавлении студента "${s['ФИО']}"`, err);
+
+          successCount++;
+        } catch (err: any) {
+          failCount++;
+          const message = err?.response?.data?.message || err?.message || 'Неизвестная ошибка';
+          const name = s['ФИО'] || 'Без имени';
+          errorMessages.push(`• ${name}: ${message}`);
         }
       }
 
-      alert('✅ Импорт завершён');
+      let resultMessage = `✅ Импорт завершён:\n🟢 Успешно: ${successCount}\n🔴 Ошибки: ${failCount}`;
+      if (errorMessages.length > 0) {
+        resultMessage += `\n\n❌ Подробности:\n${errorMessages.join('\n')}`;
+      }
+
+      alert(resultMessage);
     } catch (err) {
-      console.error('Ошибка при обработке Excel-файла:', err);
-      alert('❌ Ошибка при импорте файла');
+      console.error('Ошибка при чтении Excel-файла:', err);
+      alert('❌ Ошибка при обработке Excel-файла');
     }
   };
 
   reader.readAsBinaryString(file);
 }
+
 
 
 // Экспорт в Excel
