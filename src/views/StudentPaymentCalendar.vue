@@ -73,7 +73,7 @@
           <tbody class="divide-y divide-[#E6E3F1]">
             <tr>
               <td class="px-6 py-2">Сумма со скидкой {{ student.discountPercent }}%</td>
-              <td class="px-6 py-2">{{ discountedPrice.toLocaleString('ru-RU') }} ₸</td>
+              <td class="px-6 py-2">{{ student.discountedPrice.toLocaleString('ru-RU') }} ₸</td>
             </tr>
             <tr>
               <td class="px-6 py-2">Период оплаты</td>
@@ -81,11 +81,11 @@
             </tr>
             <tr>
               <td class="px-6 py-2">Сумма оплачено</td>
-              <td class="px-6 py-2">{{ paidAmount.toLocaleString() }} ₸</td>
+              <td class="px-6 py-2">{{ amountPaid.toLocaleString('ru-RU') }} ₸</td>
             </tr>
             <tr>
               <td class="px-6 py-2">Сумма к оплате</td>
-              <td class="px-6 py-2">{{ amountDue.toLocaleString() }} ₸</td>
+              <td class="px-6 py-2">{{ amountDue.toLocaleString('ru-RU') }} ₸</td>
             </tr>
           </tbody>
         </table>
@@ -157,6 +157,11 @@
                 </span>
               </td>
               <td class="px-4 py-2">{{ item.amount.toLocaleString('ru-RU') }} ₸</td>
+              <td class="px-4 py-2 text-center">
+                <button @click="() => deletePayment(i)" class="text-red-500 hover:text-red-700 font-medium">
+                  Удалить
+                </button>
+              </td>
             </tr>
           </tbody>
 
@@ -235,9 +240,11 @@
 <!-- Script -->
 <script setup lang="ts">
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useStudentStore } from '@/store/studentStore'
+import Datepicker from "@vuepic/vue-datepicker"
+import "@vuepic/vue-datepicker/dist/main.css"
 import axios from 'axios'
 import { useRoute } from 'vue-router'
-import { useStudentStore } from '@/store/studentStore'
 
 interface ScheduleItem {
   date: string
@@ -256,23 +263,41 @@ interface Student {
   phone: string
   totalCoursePrice: number
   discountPercent: number
+  discountedPrice: number
   paymentPeriod: number
   paymentSchedule: ScheduleItem[]
-  topStudent: boolean
-  funding_source: string
-  amount_remaining: number
+  topStudent: boolean            // ✅ Добавлено
+  funding_source: string         // ✅ Добавлено
 }
 
 
-const route = useRoute()
+interface RouteProps { id: string }
+const props = defineProps<RouteProps>()
+
+// Хранилище
 const store = useStudentStore()
+
+// Основные состояния
 const student = ref<Student | null>(null)
 const mode = ref<'calendar' | 'history'>('calendar')
 
-const showNewStatusDropdown = ref(false)
+// Выпадающие списки
+const statusOptions = ['Студент', 'Выпускник']
+const selectedStatus = ref('')
+const showStatusDropdown = ref(false)
+
+const financingOptions = ['TechOrda', 'Скидка 30%', 'Скидка 70%', 'Внутренний грант']
+const selectedFinancing = ref('')
+const showFinancingDropdown = ref(false)
+
+const topStudent = ref(false)
+
+const route = useRoute()
+const studentId = route.params.id
+
+// Форма добавления платежа
 const showAddPanel = ref(false)
-
-
+const showNewStatusDropdown = ref(false)
 const newPayment = reactive({
   date: undefined as Date | undefined,
   comment: '',
@@ -280,184 +305,265 @@ const newPayment = reactive({
   amount: null as number | null
 })
 
-const amountPaid = computed(() =>
-  student.value?.paymentSchedule
-    ?.filter(p => p.paid)
-    .reduce((sum, p) => sum + p.amount, 0) ?? 0
-)
-
-const discountedPrice = computed(() => {
+// Вычисляемые поля
+const amountPaid = computed(() => {
+  // ТЕПЕРЬ это оставшаяся сумма
   if (!student.value) return 0
-  const total = student.value.totalCoursePrice
-  const discount = student.value.discountPercent
-  return Math.round(total * (1 - discount / 100))
+  return student.value.discountedPrice - student.value.paymentSchedule
+    .filter(p => !p.paid)
+    .reduce((sum, p) => sum + p.amount, 0)
 })
 
 const amountDue = computed(() => {
-  return Math.max(discountedPrice.value - amountPaid.value, 0)
+  if (!student.value) return 0
+  return student.value.paymentSchedule
+    .filter(p => !p.paid)
+    .reduce((sum, p) => sum + p.amount, 0)
 })
 
-function onAddPayment() {
-  console.log('Добавить платёж')
-}
 
+
+// Методы UI
+function toggleStatusDropdown() {
+  showStatusDropdown.value = !showStatusDropdown.value
+  showFinancingDropdown.value = false
+}
+function toggleFinancingDropdown() {
+  showFinancingDropdown.value = !showFinancingDropdown.value
+  showStatusDropdown.value = false
+}
 function toggleNewStatusDropdown() {
-  console.log('Тоггл статуса')
+  showNewStatusDropdown.value = !showNewStatusDropdown.value
 }
-
-function selectNewStatus(newStatus: string) {
-  if (student.value) {
-    student.value.status = newStatus
-  }
+function selectStatus(opt: string) {
+  selectedStatus.value = opt
+  showStatusDropdown.value = false
+}
+function selectFinancing(opt: string) {
+  selectedFinancing.value = opt
+  showFinancingDropdown.value = false
+}
+function selectNewStatus(opt: string) {
+  newPayment.status = opt
   showNewStatusDropdown.value = false
 }
+function onAddPayment() {
+  showAddPanel.value = !showAddPanel.value
+}
 
+
+async function savePaymentScheduleToDB() {
+  if (!student.value) return;
+
+  try {
+    await fetch(`/api/students/${student.value.id}/payment-schedule`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        paymentSchedule: student.value.paymentSchedule
+      })
+    });
+  } catch (err) {
+    console.error('Ошибка при сохранении paymentSchedule', err);
+  }
+}
+
+
+// Форматирование
+function formatDate(iso: string) {
+  return new Date(iso).toLocaleDateString('ru-RU', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  })
+}
+
+function formatPaymentPeriod(val: number | null | undefined): string {
+  if (!val || val === 0) return 'Оплачено полностью'
+  if (val === 1) return '1 месяц'
+  return `${val} месяцев`
+}
+
+// Загрузка студента
 onMounted(async () => {
   if (!store.list.length) await store.fetchStudents()
 
-  const rawStudent = store.list.find(x => x.id === +route.params.id)!
-  if (!rawStudent) return
+  const s = store.list.find(x => x.id === +props.id)
+  if (!s) return
 
-  // Определяем скидку
-  const discountPercent = rawStudent.discount_percent ?? 0
-
-  const s: Student = {
-    id: rawStudent.id,
-    name: rawStudent.full_name,
-    iin: rawStudent.iin,
-    stream: rawStudent.stream || '',
-    status: rawStudent.status || 'Студент',
-    email: rawStudent.email || '',
-    phone: rawStudent.phone || '',
-    totalCoursePrice: rawStudent.total_cost,
-    discountPercent: rawStudent.discount_percent,
-    paymentPeriod: rawStudent.payment_period ?? 0,
-    paymentSchedule: [],
-    topStudent: rawStudent.top_student === true,
-    funding_source: rawStudent.funding_source,
-    amount_remaining: rawStudent.amount_remaining ?? 0
+  // === РАССЧЁТ СКИДКИ ===
+  let discountPercent = 0
+  const fs = s.funding_source
+  if (['TechOrda', 'Внутренний грант'].includes(fs)) {
+    discountPercent = 100
+  } else if (['Скидка 70%', 'со скидкой 70%'].includes(fs)) {
+    discountPercent = 70
+  } else if (['Скидка 30%', 'со скидкой 30%'].includes(fs)) {
+    discountPercent = 30
   }
 
-  student.value = s
+  const discountedPrice = s.total_cost - (s.total_cost * (discountPercent / 100))
+  const paidAmount = s.paid_amount
+  const paymentPeriod = s.payment_period ?? 0
 
-  // Пробуем загрузить график из БД
+  // === СОЗДАНИЕ ОБЪЕКТА СТУДЕНТА ===
+  student.value = {
+    id: s.id,
+    name: s.full_name,
+    iin: s.iin,
+    stream: s.stream || '',
+    status: s.status || 'Активен',
+    email: s.email || 'example@mail.com',
+    phone: s.phone || '+7(777)-111-11-11',
+    totalCoursePrice: s.total_cost,
+    discountPercent,
+    discountedPrice,
+    paymentPeriod,
+    paymentSchedule: [],
+    topStudent: s.top_student === true,
+    funding_source: s.funding_source || ''
+  }
+
+
+  // === ПОЛУЧАЕМ paymentSchedule ИЗ БД ===
   try {
-    const res = await axios.get(`/api/students/${s.id}/payment-schedule`)
-    if (res.data.success && Array.isArray(res.data.paymentSchedule) && res.data.paymentSchedule.length > 0) {
-      student.value.paymentSchedule = res.data.paymentSchedule
-      return
+    const response = await axios.get(`/api/students/${student.value.id}/payment-schedule`)
+    if (response.data.success && Array.isArray(response.data.paymentSchedule) && response.data.paymentSchedule.length > 0) {
+      student.value.paymentSchedule = response.data.paymentSchedule
+      // Если вся сумма уже оплачена — отмечаем все платежи как оплаченные
+      const totalRemaining = student.value.paymentSchedule
+        .filter(p => !p.paid)
+        .reduce((sum, p) => sum + p.amount, 0)
+
+      if (totalRemaining === 0) {
+        student.value.paymentSchedule = student.value.paymentSchedule.map(p => ({
+          ...p,
+          paid: true
+        }))
+        await savePaymentScheduleToDB()
+      }
+
+      return // если уже есть график — выходим
     }
   } catch (err) {
-    console.error('Ошибка при загрузке графика:', err)
+    console.error('Ошибка при получении графика платежей:', err)
   }
 
-  // Если графика нет — генерируем новый
-  const fullPrice = s.totalCoursePrice
-  const discountAmount = Math.round(fullPrice * (s.discountPercent / 100))
-  const discountedPrice = Math.round(fullPrice * (1 - s.discountPercent / 100))
+  // === ЕСЛИ payment_schedule В БАЗЕ НЕТ — СОЗДАЁМ ===
+  if (!student.value) return
 
-  // Распределяем оставшуюся сумму по месяцам
-  const amountPerMonth: number[] = []
-  let left = discountedPrice  // discountedPrice уже с учётом скидки
+  const amountDue = Math.max(discountedPrice - paidAmount, 0)
 
-  for (let i = 0; i < s.paymentPeriod; i++) {
-    const avg = Math.floor(left / (s.paymentPeriod - i))
-    amountPerMonth.push(avg)
-    left -= avg
-  }
-
-  // Добавляем остаток в последний месяц
-  amountPerMonth[amountPerMonth.length - 1] += left
-
-  const schedule: ScheduleItem[] = []
-  const today = new Date()
-
-  for (let i = 0; i < s.paymentPeriod; i++) {
-    const date = new Date(today)
-    date.setMonth(date.getMonth() + i)
-    schedule.push({
-      date: date.toISOString().split('T')[0],
-      amount: amountPerMonth[i],
-      paid: false
-    })
-  }
-
-  // Добавляем скидку как оплаченный платёж в начало
-  if (discountAmount > 0) {
-    schedule.unshift({
-      date: today.toISOString().split('T')[0],
-      amount: discountAmount,
+  // === ЕСЛИ СКИДКА 100% — СОЗДАЁМ 1 ОПЛАЧЕННЫЙ ПЛАТЁЖ ===
+  if (discountPercent === 100) {
+    student.value.paymentSchedule = [{
+      date: new Date().toISOString().split('T')[0],
+      amount: s.total_cost,
       paid: true,
-      comment: 'Скидка'
+      comment: 'Полная оплата (скидка 100%)'
+    }]
+    await savePaymentScheduleToDB()
+    return // выходим — не создаём график по месяцам
+  }
+
+  if (!paymentPeriod) return
+
+  // === РАВНОМЕРНОЕ РАСПРЕДЕЛЕНИЕ ===
+  const monthlyAmounts: number[] = []
+  let remaining = amountDue
+  for (let i = 0; i < paymentPeriod; i++) {
+    const avg = Math.round(remaining / (paymentPeriod - i))
+    monthlyAmounts.push(avg)
+    remaining -= avg
+  }
+
+  const generatedSchedule: ScheduleItem[] = []
+  let remainingPaid = paidAmount
+  const startDate = new Date()
+
+  for (let i = 0; i < paymentPeriod; i++) {
+    const date = new Date(startDate)
+    date.setMonth(date.getMonth() + i)
+
+    const amount = monthlyAmounts[i]
+    const paid = remainingPaid >= amount
+    if (paid) remainingPaid -= amount
+
+    generatedSchedule.push({
+      date: date.toISOString().split('T')[0],
+      amount,
+      paid
     })
   }
 
-  student.value.paymentSchedule = schedule
+  student.value.paymentSchedule = generatedSchedule
   await savePaymentScheduleToDB()
 })
 
-async function savePaymentScheduleToDB() {
-  if (!student.value) return
+
+
+const togglePaymentStatus = async (index: number) => {
+  if (!student.value) return // ❗ защита от null
+
+  // 1. Инвертируем статус
+  student.value.paymentSchedule[index].paid = !student.value.paymentSchedule[index].paid
+
+  // 2. Сохраняем на сервере
   try {
     await axios.put(`/api/students/${student.value.id}/payment-schedule`, {
-      paymentSchedule: student.value.paymentSchedule
+      paymentSchedule: student.value.paymentSchedule,
     })
+    console.log('✅ Изменения сохранены')
   } catch (err) {
-    console.error('Ошибка при сохранении графика:', err)
+    console.error('Ошибка при сохранении paymentSchedule:', err)
   }
 }
 
-function togglePaymentStatus(index: number) {
-  if (!student.value) return
-  const item = student.value.paymentSchedule[index]
-  item.paid = !item.paid
-  savePaymentScheduleToDB()
-}
+
 
 function saveNewPayment() {
-  if (!student.value || !newPayment.date || !newPayment.amount || !newPayment.status) return
+  if (!student.value || !newPayment.date || !newPayment.amount || !newPayment.status) return;
 
   student.value.paymentSchedule.push({
     date: newPayment.date.toISOString().slice(0, 10),
     amount: newPayment.amount,
     paid: newPayment.status === 'Оплачен',
     comment: newPayment.comment
-  })
+  });
 
   Object.assign(newPayment, {
     date: undefined,
     comment: '',
     status: '',
     amount: null
-  })
+  });
 
-  mode.value = 'history'
+  mode.value = 'history';
+  showAddPanel.value = false;
+
+  savePaymentScheduleToDB(); // Сохраняем
+}
+
+async function savePaymentScheduleToBackend() {
+  if (!student.value) return
+  try {
+    await axios.put(`/api/students/${student.value.id}`, {
+      payment_schedule: student.value.paymentSchedule,
+    })
+    console.log('Платежный график обновлён')
+  } catch (err) {
+    console.error('Ошибка при сохранении платежного графика:', err)
+  }
+}
+
+function deletePayment(index: number) {
+  if (!student.value) return
+
+  student.value.paymentSchedule.splice(index, 1)
   savePaymentScheduleToDB()
 }
 
-function formatPaymentPeriod(months: number): string {
-  if (months === 1) return '1 месяц'
-  if (months >= 2 && months <= 4) return `${months} месяца`
-  return `${months} месяцев`
-}
-
-const paidAmount = computed(() => {
-  if (!student.value || !student.value.paymentSchedule) return 0
-  return student.value.paymentSchedule
-    .filter(p => p.paid)
-    .reduce((sum, p) => sum + p.amount, 0)
-})
-
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  return date.toLocaleDateString('ru-RU', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  })
-}
 </script>
-
 
 
 

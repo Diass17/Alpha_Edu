@@ -247,7 +247,6 @@ router.put('/students/:id', async (req, res) => {
   }
 });
 
-
 router.post('/students/edit/:id', async (req, res) => {
   const id = req.params.id;
   const {
@@ -360,6 +359,78 @@ router.get('/students/:id/payment-schedule', async (req, res) => {
 });
 
 
+// POST /students/:id/generate-payment-schedule
+router.post('/students/:id/generate-payment-schedule', async (req, res) => {
+  const studentId = req.params.id;
+
+  try {
+    // Получаем данные студента
+    const studentRes = await pool.query(`
+      SELECT 
+        total_cost,
+        discount_percent,
+        payment_period,
+        COALESCE((
+          SELECT SUM(amount)
+          FROM payment_schedule
+          WHERE student_id = $1 AND paid = true
+        ), 0) AS paid_amount
+      FROM students
+      WHERE id = $1
+    `, [studentId]);
+
+    if (studentRes.rowCount === 0) {
+      return res.status(404).json({ error: 'Студент не найден' });
+    }
+
+    const { total_cost, discount_percent, payment_period, paid_amount } = studentRes.rows[0];
+
+    const discount = (total_cost * (discount_percent || 0)) / 100;
+    const amountRemaining = total_cost - discount - paid_amount;
+
+    if (payment_period <= 0) {
+      return res.status(400).json({ error: 'Некорректный срок оплаты (payment_period)' });
+    }
+
+    const monthlyAmount = Math.round(amountRemaining / payment_period);
+
+    // Удаляем старый график
+    await pool.query('DELETE FROM payment_schedule WHERE student_id = $1', [studentId]);
+
+    // Создаём новый график
+    const now = new Date();
+    const schedule = [];
+
+    for (let i = 0; i < payment_period; i++) {
+      const date = new Date(now);
+      date.setMonth(now.getMonth() + i);
+
+      schedule.push({
+        student_id: studentId,
+        date: date.toISOString().split('T')[0],
+        paid: false,
+        amount: monthlyAmount
+      });
+
+      await pool.query(
+        `INSERT INTO payment_schedule (student_id, date, paid, amount)
+         VALUES ($1, $2, $3, $4)`,
+        [studentId, date.toISOString().split('T')[0], false, monthlyAmount]
+      );
+    }
+
+    // Обновим paid_amount в students на случай, если что-то изменилось
+    await pool.query(`
+      UPDATE students SET paid_amount = $1
+      WHERE id = $2
+    `, [paid_amount, studentId]);
+
+    res.status(200).json({ success: true, paymentSchedule: schedule });
+  } catch (error) {
+    console.error('Ошибка при генерации графика:', error);
+    res.status(500).json({ error: 'Ошибка сервера при генерации графика' });
+  }
+});
 
 
 
