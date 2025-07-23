@@ -175,9 +175,12 @@ onMounted(async () => {
       const covered = Math.round(total * percentNumber / 100)
 
       // 👇 Используй реальное значение paid_amount, если оно есть
-      const paidByStudent = typeof s.paid_amount === 'number'
+      const paidAmount = typeof s.paid_amount === 'number'
         ? s.paid_amount
-        : total - covered
+        : total - (typeof s.amount_remaining === 'number' ? s.amount_remaining : covered)
+
+      let payAmount = typeof s.amount_remaining === 'number' ? s.amount_remaining : (total - covered)
+
 
       return {
         name: s.full_name,
@@ -185,10 +188,11 @@ onMounted(async () => {
         percent: percentLabel,
         total: total.toLocaleString('ru-RU'),
         covered: covered.toLocaleString('ru-RU'),
-        pay: paidByStudent.toLocaleString('ru-RU'),
+        pay: payAmount.toLocaleString('ru-RU'),
         raw: {
           covered,
-          pay: paidByStudent
+          pay: payAmount,
+          paid: paidAmount
         }
       }
     })
@@ -253,7 +257,7 @@ const fundingSummary = computed(() => {
     groups[s.funding].count++
     groups[s.funding].percentList.push(s.percent)
     groups[s.funding].covered += s.raw.covered || 0
-    groups[s.funding].paid += s.raw.pay || 0
+    groups[s.funding].paid += s.raw.paid || 0
   }
 
   return Object.values(groups).map(g => {
@@ -311,7 +315,7 @@ const fundingTotal = computed(() => {
   for (const s of filteredStudents.value) {
     count++
     covered += s.raw.covered || 0
-    paid += s.raw.pay || 0
+    paid += s.raw.paid || 0
   }
 
   return {
