@@ -164,14 +164,19 @@ async function handleExcelFile(event: Event) {
         digits = '7' + digits.slice(1);
       }
 
-      // Если начинается на 7 и длина 11 — всё ок
       // Если длина 10 (без кода страны), добавим 7
       if (digits.length === 10) {
         digits = '7' + digits;
       }
 
+      // После всех замен номер должен быть ровно 11 цифр
+      if (digits.length !== 11) {
+        throw new Error('Номер телефона должен состоять из 11 цифр (с кодом страны)');
+      }
+
       return '+' + digits;
     }
+
 
 
     try {
