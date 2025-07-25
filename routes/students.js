@@ -57,12 +57,11 @@ router.get('/students', async (req, res) => {
     students.total_cost,
     students.discount_percent,
     students.paid_amount,
+    students.amount_remaining,
     students.payment_period,
     students.stream_id,
     students.created_at,
     streams.name AS stream,
-
-    -- Добавлено: последняя дата оплаты (если была)
     (
       SELECT date
       FROM payment_schedule
@@ -70,10 +69,10 @@ router.get('/students', async (req, res) => {
       ORDER BY date DESC
       LIMIT 1
     ) AS last_payment_date
-
   FROM students
   LEFT JOIN streams ON students.stream_id = streams.id
 `;
+
 
 
     if (search) {
@@ -342,43 +341,35 @@ router.put('/students/:id/schedule', async (req, res) => {
 // ✅ Финальный вариант: PUT /students/:id/payment-schedule
 // backend/routes/students.js
 router.put('/students/:id/payment-schedule', async (req, res) => {
-  const studentId = req.params.id;
-  const paymentSchedule = req.body.paymentSchedule;
+  const studentId = req.params.id
+  const { paymentSchedule, paid_amount, amount_remaining } = req.body
 
   try {
-    // Удаляем старые записи
-    await pool.query('DELETE FROM payment_schedule WHERE student_id = $1', [studentId]);
-
-    // Вставляем новые записи
-    for (const payment of paymentSchedule) {
-      await pool.query(
-        `INSERT INTO payment_schedule (student_id, date, paid, amount)
-         VALUES ($1, $2, $3, $4)`,
-        [studentId, payment.date, payment.paid, payment.amount]
-      );
-    }
-
-    // 🔁 Обновляем paid_amount на основе новых данных
-    const sumResult = await pool.query(`
-      SELECT COALESCE(SUM(amount), 0) AS total_paid
-      FROM payment_schedule
-      WHERE student_id = $1 AND paid = true
-    `, [studentId]);
-
-    const paidAmount = sumResult.rows[0].total_paid;
-
+    // 1. Обновляем payment_schedule (например в отдельной таблице)
     await pool.query(`
-      UPDATE students
-      SET paid_amount = $1
-      WHERE id = $2
-    `, [paidAmount, studentId]);
+      DELETE FROM payment_schedule WHERE student_id = $1
+    `, [studentId])
 
-    res.status(200).json({ success: true, paymentSchedule });
+    const insertPromises = paymentSchedule.map(p =>
+      pool.query(`
+        INSERT INTO payment_schedule (student_id, date, amount, paid, comment)
+        VALUES ($1, $2, $3, $4, $5)
+      `, [studentId, p.date, p.amount, p.paid, p.comment || null])
+    )
+    await Promise.all(insertPromises)
+
+    // 2. Обновляем students.paid_amount и amount_remaining
+    await pool.query(`
+      UPDATE students SET paid_amount = $1, amount_remaining = $2 WHERE id = $3
+    `, [paid_amount, amount_remaining, studentId])
+
+    res.json({ success: true })
   } catch (error) {
-    console.error('Ошибка при обновлении графика:', error);
-    res.status(500).json({ success: false, error: 'Ошибка при обновлении графика' });
+    console.error('Ошибка при обновлении графика платежей:', error)
+    res.status(500).json({ success: false, error: 'Ошибка при обновлении' })
   }
-});
+})
+
 
 router.get('/students/:id/payment-schedule', async (req, res) => {
   const studentId = req.params.id;

@@ -34,7 +34,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
         </button>
-        <ul v-if="showFundingType" class="funding-dropdown absolute z-10 w-full mt-2 bg-white border rounded-lg shadow-md">
+        <ul v-if="showFundingType"
+          class="funding-dropdown absolute z-10 w-full mt-2 bg-white border rounded-lg shadow-md">
           <li v-for="option in fundingTypes" :key="option" @click="selectFundingType(option)"
             class="cursor-pointer px-4 py-2 hover:bg-gray-100 flex justify-between items-center">
             <span :class="{ 'text-[rgb(98,82,254)] font-medium': selectedFundingTypes.includes(option) }">
@@ -109,7 +110,7 @@
 
 
 <script setup lang="ts">
-import { ref, computed, onMounted ,  onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 
 // Тип для студента
@@ -184,12 +185,12 @@ onMounted(async () => {
     students.value = res.data.map((s: any) => ({
       id: s.id,
       name: s.full_name,
-      iin: s.iin,
-      source: s.funding_source || 'Не указано',
       status: s.status,
+      source: s.funding_source,
+      covered: s.total_cost,
       paid: s.paid_amount,
       remaining: s.amount_remaining,
-      debt: s.amount_remaining > 0
+      debt: s.amount_remaining > 0 
     }))
   } catch (error) {
     console.error('Ошибка при загрузке студентов:', error)
@@ -197,17 +198,20 @@ onMounted(async () => {
 })
 
 // Фильтрация студентов
-const filteredStudents = computed(() =>
-  students.value
+const filteredStudents = computed(() => {
+  return students.value
     .filter((s) => {
       const matchesSearch = s.name.toLowerCase().includes(search.value.toLowerCase())
       const matchesFunding = selectedFundingTypes.value.length === 0 || selectedFundingTypes.value.includes(s.source)
       const matchesStatus = !selectedStatus.value || s.status === selectedStatus.value
-      const matchesDebt = !withDebt.value || s.debt
+      const matchesDebt = !withDebt.value || s.debt // ← используем флаг
+
       return matchesSearch && matchesFunding && matchesStatus && matchesDebt
     })
     .sort((a, b) => a.id - b.id)
-)
+})
+
+
 
 function clearAllFilters() {
   selectedFundingTypes.value = []

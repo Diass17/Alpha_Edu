@@ -265,9 +265,17 @@ interface Student {
   discountPercent: number
   discountedPrice: number
   paymentPeriod: number
-  paymentSchedule: ScheduleItem[]
-  topStudent: boolean            // ✅ Добавлено
-  funding_source: string         // ✅ Добавлено
+  paymentSchedule: {
+    date: string
+    amount: number
+    paid: boolean
+    comment?: string
+  }[]
+  topStudent: boolean
+  funding_source: string
+
+  paidAmount: number
+  amountRemaining: number
 }
 
 
@@ -421,8 +429,13 @@ onMounted(async () => {
     paymentPeriod,
     paymentSchedule: [],
     topStudent: s.top_student === true,
-    funding_source: s.funding_source || ''
+    funding_source: s.funding_source || '',
+
+    // ✅ добавляем недостающие поля
+    paidAmount: s.paid_amount || 0,
+    amountRemaining: s.amount_remaining || 0
   }
+
 
 
   // === ПОЛУЧАЕМ paymentSchedule ИЗ БД ===
@@ -503,16 +516,30 @@ onMounted(async () => {
 
 
 const togglePaymentStatus = async (index: number) => {
-  if (!student.value) return // ❗ защита от null
+  if (!student.value) return
 
   // 1. Инвертируем статус
   student.value.paymentSchedule[index].paid = !student.value.paymentSchedule[index].paid
 
-  // 2. Сохраняем на сервере
+  // 2. Пересчёт оплаченной суммы
+  const paidAmount = student.value.paymentSchedule
+    .filter(p => p.paid)
+    .reduce((sum, p) => sum + p.amount, 0)
+
+  const amountRemaining = student.value.discountedPrice - paidAmount
+
+  // 3. Обновление в БД
   try {
     await axios.put(`/api/students/${student.value.id}/payment-schedule`, {
       paymentSchedule: student.value.paymentSchedule,
+      paid_amount: paidAmount,
+      amount_remaining: amountRemaining
     })
+
+    // Обновляем локально
+    student.value.paidAmount = paidAmount
+    student.value.amountRemaining = amountRemaining
+
     console.log('✅ Изменения сохранены')
   } catch (err) {
     console.error('Ошибка при сохранении paymentSchedule:', err)

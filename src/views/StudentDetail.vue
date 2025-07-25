@@ -250,12 +250,13 @@ watch(
 )
 
 onMounted(async () => {
-  if (!store.list.length) await store.fetchStudents()
-  const res = await store.fetchById(id)
+  const res = await store.fetchById(id) // теперь получаем уже обновленного студента
+
   student.value = res
 
   const discount = getDiscountPercent(res.funding_source)
 
+  // 💥 здесь инициализация editForm — уже с новым paid_amount
   editForm.value = {
     full_name: res.full_name,
     course: res.subject,
@@ -268,9 +269,13 @@ onMounted(async () => {
     financing: res.funding_source ?? '',
     paymentPeriod: typeof res.paymentPeriod === 'number' ? res.paymentPeriod : parseInt(res.paymentPeriod ?? '4'),
     totalCoursePrice: res.total_cost ?? 0,
-    discountPercent: getDiscountPercent(res.funding_source),
-    discountedPrice: Math.round((res.total_cost ?? 0) * (1 - getDiscountPercent(res.funding_source) / 100)),
+    discountPercent: discount,
+    discountedPrice: Math.round((res.total_cost ?? 0) * (1 - discount / 100)),
+
+    // 👇 здесь должно быть 150 000
     paid_amount: res.paid_amount ?? 0,
+
+    // 👇 пересчитываем остаток
     amount_remaining: Math.max(
       Math.round((res.total_cost ?? 0) * (1 - discount / 100)) - Number(res.paid_amount ?? 0),
       0
