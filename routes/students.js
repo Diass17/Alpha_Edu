@@ -3,6 +3,26 @@ const router = express.Router();
 const pool = require('../config/db');
 
 
+const dayjs = require('dayjs');
+
+function generatePaymentSchedule(discountedPrice, startDate, months = 6) {
+  const monthlyAmount = Math.floor(discountedPrice / months);
+  const payments = [];
+  let total = 0;
+
+  for (let i = 0; i < months; i++) {
+    const amount = (i === months - 1)
+      ? discountedPrice - total
+      : monthlyAmount;
+
+    const date = dayjs(startDate).add(i, 'month').format('YYYY-MM-DD');
+
+    payments.push({ date, amount, paid: false });
+    total += amount;
+  }
+
+  return payments;
+}
 
 router.get('/students/courses', async (req, res) => {
   try {
@@ -83,14 +103,13 @@ router.get('/streams', async (req, res) => {
   }
 });
 
+
+
 router.post('/students', async (req, res) => {
-  console.log('Получено:', req.body);
-  const student = req.body;
-  console.log('Отправляем:', student);
   const {
     full_name, iin, email, phone, status, top_student,
     funding_source, subject, total_cost, paid_amount,
-    payment_period, paymentPeriod // <- на случай если с фронта camelCase
+    payment_period, paymentPeriod
   } = req.body;
 
   if (!funding_source) {
@@ -126,7 +145,14 @@ router.post('/students', async (req, res) => {
 
   try {
     const parsedPeriod = parseInt(payment_period ?? paymentPeriod, 10);
-    const finalPaymentPeriod = Number.isFinite(parsedPeriod) ? parsedPeriod : 0;
+    const finalPaymentPeriod = Number.isFinite(parsedPeriod) ? parsedPeriod : 6;
+
+    // Скидка
+    let discountPercent = 0;
+    if (fundingSourceText === 'Скидка 30%') discountPercent = 30;
+    if (fundingSourceText === 'Скидка 70%') discountPercent = 70;
+
+    const discountedPrice = Math.round((total_cost || 0) * (1 - discountPercent / 100));
 
     const result = await pool.query(
       `INSERT INTO students (
@@ -151,13 +177,33 @@ router.post('/students', async (req, res) => {
       ]
     );
 
-    // Возвращаем нового студента, включая вычисленное discount_percent
-    res.status(201).json(result.rows[0]);
+    const newStudent = result.rows[0];
+
+    // Генерация платежей
+    const paymentStartDate = new Date();
+    const schedule = generatePaymentSchedule(discountedPrice, paymentStartDate, finalPaymentPeriod);
+
+    for (const payment of schedule) {
+      try {
+        await pool.query(
+          `INSERT INTO payment_schedule (student_id, date, amount, paid)
+           VALUES ($1, $2, $3, $4)
+           ON CONFLICT (student_id, date) DO NOTHING`, // чтобы избежать дубликатов
+          [newStudent.id, payment.date, payment.amount, payment.paid]
+        );
+      } catch (insertErr) {
+        console.error('Ошибка при вставке платежа:', insertErr);
+      }
+    }
+
+    res.status(201).json(newStudent);
   } catch (err) {
     console.error('Ошибка при добавлении студента:', err);
     res.status(500).json({ error: 'Ошибка при добавлении. Проверьте данные.' });
   }
 });
+
+
 
 
 
@@ -178,15 +224,7 @@ router.get('/students/:id', async (req, res) => {
 
   try {
     const studentRes = await pool.query(`
-      SELECT s.id, s.full_name, s.iin, s.email, s.phone, s.status, s.top_student,
-           s.funding_source, s.subject, s.total_cost, s.discount_percent,
-           s.payment_period, s.stream_id,
-           COALESCE(SUM(ps.amount) FILTER (WHERE ps.paid = true), 0) AS paid_amount,
-           s.total_cost - COALESCE(SUM(ps.amount) FILTER (WHERE ps.paid = true), 0) AS amount_remaining
-      FROM students s
-      LEFT JOIN payment_schedule ps ON s.id = ps.student_id
-      WHERE s.id = $1
-      GROUP BY s.id
+      SELECT * FROM students WHERE id = $1
     `, [id]);
 
 
@@ -440,10 +478,16 @@ router.post('/students/:id/generate-payment-schedule', async (req, res) => {
 router.get('/students/:id/payments', async (req, res) => {
   const studentId = req.params.id;
   try {
-    const result = await pool.query(
-      'SELECT * FROM student_payments WHERE student_id = $1 ORDER BY date ASC',
-      [studentId]
-    );
+    const result = await pool.query(`
+  UPDATE students
+  SET paid_amount = (
+    SELECT COALESCE(SUM(amount), 0)
+    FROM payment_schedule
+    WHERE student_id = $1 AND paid = true
+  )
+  WHERE id = $1
+`, [studentId]);
+
     res.status(200).json(result.rows);
   } catch (err) {
     console.error('Ошибка при получении платежей:', err);

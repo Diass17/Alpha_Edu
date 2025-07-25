@@ -139,7 +139,7 @@
                 <input v-model.number="editForm.paid_amount" class="input-basic w-36 text-right" type="number" />
               </template>
               <template v-else>
-                {{ formatTenge(amountPaid) }}
+                {{ formatTenge(editForm.paid_amount ?? 0) }}
               </template>
             </td>
           </tr>

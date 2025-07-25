@@ -268,7 +268,6 @@ interface Student {
   paymentSchedule: ScheduleItem[]
   topStudent: boolean            // ✅ Добавлено
   funding_source: string         // ✅ Добавлено
-  paidAmount: number
 }
 
 
@@ -296,8 +295,6 @@ const topStudent = ref(false)
 const route = useRoute()
 const studentId = route.params.id
 
-const schedule = ref<PaymentItem[]>([]);
-
 // Форма добавления платежа
 const showAddPanel = ref(false)
 const showNewStatusDropdown = ref(false)
@@ -310,22 +307,20 @@ const newPayment = reactive({
 
 // Вычисляемые поля
 const amountPaid = computed(() => {
+  // ТЕПЕРЬ это оставшаяся сумма
   if (!student.value) return 0
-
-  // Оплаченные платежи
-  const paidViaSchedule = student.value.paymentSchedule
-    .filter(p => p.paid)
+  return student.value.discountedPrice - student.value.paymentSchedule
+    .filter(p => !p.paid)
     .reduce((sum, p) => sum + p.amount, 0)
-
-  // paidAmount из БД может включать ручные оплаты
-  return Math.max(student.value.paidAmount, paidViaSchedule)
 })
-
 
 const amountDue = computed(() => {
   if (!student.value) return 0
-  return Math.max(student.value.discountedPrice - amountPaid.value, 0)
+  return student.value.paymentSchedule
+    .filter(p => !p.paid)
+    .reduce((sum, p) => sum + p.amount, 0)
 })
+
 
 
 // Методы UI
@@ -389,17 +384,6 @@ function formatPaymentPeriod(val: number | null | undefined): string {
   return `${val} месяцев`
 }
 
-type PaymentItem = {
-  amount: {
-    currency: string;
-    value: string;
-  };
-  label: string;
-  pending?: boolean;
-  is_paid?: boolean; // ← добавляем это поле
-};
-
-
 // Загрузка студента
 onMounted(async () => {
   if (!store.list.length) await store.fetchStudents()
@@ -437,31 +421,33 @@ onMounted(async () => {
     paymentPeriod,
     paymentSchedule: [],
     topStudent: s.top_student === true,
-    funding_source: s.funding_source || '',
-    paidAmount: s.paid_amount || 0,
+    funding_source: s.funding_source || ''
   }
 
 
   // === ПОЛУЧАЕМ paymentSchedule ИЗ БД ===
   try {
     const response = await axios.get(`/api/students/${student.value.id}/payment-schedule`)
-    if (response.data.success && Array.isArray(response.data.paymentSchedule)) {
+    if (response.data.success && Array.isArray(response.data.paymentSchedule) && response.data.paymentSchedule.length > 0) {
       student.value.paymentSchedule = response.data.paymentSchedule
+      // Если вся сумма уже оплачена — отмечаем все платежи как оплаченные
+      const totalRemaining = student.value.paymentSchedule
+        .filter(p => !p.paid)
+        .reduce((sum, p) => sum + p.amount, 0)
 
-      const sumSchedule = student.value.paymentSchedule.reduce((sum, p) => sum + p.amount, 0)
-      const expected = student.value.discountedPrice
-
-      if (Math.abs(sumSchedule - expected) > 100) { // ⚠️ допустимая погрешность 100 тг
-        console.warn('🚨 График некорректен, пересоздаём...')
-        await generateAndSavePaymentSchedule()
+      if (totalRemaining === 0) {
+        student.value.paymentSchedule = student.value.paymentSchedule.map(p => ({
+          ...p,
+          paid: true
+        }))
+        await savePaymentScheduleToDB()
       }
 
-      return
+      return // если уже есть график — выходим
     }
   } catch (err) {
     console.error('Ошибка при получении графика платежей:', err)
   }
-
 
   // === ЕСЛИ payment_schedule В БАЗЕ НЕТ — СОЗДАЁМ ===
   if (!student.value) return
@@ -514,81 +500,24 @@ onMounted(async () => {
   await savePaymentScheduleToDB()
 })
 
-async function generateAndSavePaymentSchedule() {
-  if (!student.value) return
-
-  const { discountPercent, discountedPrice, paymentPeriod, paidAmount, totalCoursePrice } = student.value
-
-  // 100% скидка — один платёж
-  if (discountPercent === 100) {
-    student.value.paymentSchedule = [{
-      date: new Date().toISOString().split('T')[0],
-      amount: totalCoursePrice,
-      paid: true,
-      comment: 'Полная оплата (скидка 100%)'
-    }]
-    await savePaymentScheduleToDB()
-    return
-  }
-
-  if (!paymentPeriod) return
-
-  const amountDue = Math.max(discountedPrice - paidAmount, 0)
-
-  // === РАВНОМЕРНОЕ РАСПРЕДЕЛЕНИЕ ===
-  const monthlyAmounts: number[] = []
-  let remaining = amountDue
-  for (let i = 0; i < paymentPeriod; i++) {
-    const avg = Math.round(remaining / (paymentPeriod - i))
-    monthlyAmounts.push(avg)
-    remaining -= avg
-  }
-
-  const generatedSchedule: ScheduleItem[] = []
-  let remainingPaid = paidAmount
-  const startDate = new Date()
-
-  for (let i = 0; i < paymentPeriod; i++) {
-    const date = new Date(startDate)
-    date.setMonth(date.getMonth() + i)
-
-    const amount = monthlyAmounts[i]
-    const paid = remainingPaid >= amount
-    if (paid) remainingPaid -= amount
-
-    generatedSchedule.push({
-      date: date.toISOString().split('T')[0],
-      amount,
-      paid
-    })
-  }
-
-  student.value.paymentSchedule = generatedSchedule
-  await savePaymentScheduleToDB()
-}
 
 
 const togglePaymentStatus = async (index: number) => {
-  if (!student.value) return
+  if (!student.value) return // ❗ защита от null
 
+  // 1. Инвертируем статус
   student.value.paymentSchedule[index].paid = !student.value.paymentSchedule[index].paid
 
-  // 👇 Пересчёт paidAmount локально
-  const paidViaSchedule = student.value.paymentSchedule
-    .filter(p => p.paid)
-    .reduce((sum, p) => sum + p.amount, 0)
-
-  student.value.paidAmount = paidViaSchedule
-
+  // 2. Сохраняем на сервере
   try {
     await axios.put(`/api/students/${student.value.id}/payment-schedule`, {
-      paymentSchedule: student.value.paymentSchedule
+      paymentSchedule: student.value.paymentSchedule,
     })
+    console.log('✅ Изменения сохранены')
   } catch (err) {
     console.error('Ошибка при сохранении paymentSchedule:', err)
   }
 }
-
 
 
 
@@ -600,42 +529,20 @@ function saveNewPayment() {
     amount: newPayment.amount,
     paid: newPayment.status === 'Оплачен',
     comment: newPayment.comment
-  })
-
-  // 👇 Пересчёт paidAmount
-  student.value.paidAmount = student.value.paymentSchedule
-    .filter(p => p.paid)
-    .reduce((sum, p) => sum + p.amount, 0)
+  });
 
   Object.assign(newPayment, {
     date: undefined,
     comment: '',
     status: '',
     amount: null
-  })
+  });
 
-  mode.value = 'history'
-  showAddPanel.value = false
+  mode.value = 'history';
+  showAddPanel.value = false;
 
-  savePaymentScheduleToDB()
+  savePaymentScheduleToDB(); // Сохраняем
 }
-
-const monthlyAmount = computed(() => {
-  if (!student.value || !schedule.value) return 0;
-
-  const totalCost = student.value.totalCoursePrice || 0;
-  const discount = student.value.discountPercent || 0;
-  const paidAmount = student.value.paidAmount || 0;
-
-  const discountedCost = totalCost - (totalCost * discount / 100);
-  const remaining = discountedCost - paidAmount;
-
-  const unpaidCount = schedule.value.filter(p => !p.is_paid).length;
-
-  return unpaidCount > 0 ? Math.ceil(remaining / unpaidCount) : 0;
-});
-
-
 
 async function savePaymentScheduleToBackend() {
   if (!student.value) return
